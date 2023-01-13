@@ -9,7 +9,7 @@ toreaderThread::toreaderThread(QObject *parent)
 void toreaderThread::receivedPage(int page) {
     log("Requested page " + QString::number(page), className);
     int forwardToCreate = 1;
-    for(int i = page - forwardToCreate; i < page + forwardToCreate; i++) {
+    for(int i = page - forwardToCreate; i <= page + forwardToCreate; i++) {
         if(i > 0) {
             getPage(i);
         }
@@ -29,8 +29,8 @@ void toreaderThread::getPage(int page) {
         pdfArgs << "-F" << "html"; // Format
         pdfArgs << "-X"; // Remove Epub layout
         pdfArgs << "-S" << "9"; // Font
-        pdfArgs << "-W" << "300"; // Width
-        pdfArgs << "-H" << "430"; // height
+        pdfArgs << "-W" << "315"; // Width
+        pdfArgs << "-H" << "380"; // height
         pdfArgs << "-O";
         pdfArgs << "inhibit-spacespreserve-whitespace,dehyphenate";
         pdfArgs << "-o" << "/inkbox/book/split/" + QString::number(page); // Where to save it

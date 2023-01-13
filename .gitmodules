@@ -1,3 +1,6 @@
 [submodule "libs/libsndfile"]
 	path = libs/libsndfile
 	url = https://github.com/libsndfile/libsndfile
+[submodule "libs/libreader-rs"]
+	path = libs/libreader-rs
+	url = https://github.com/Szybet/libreader-rs

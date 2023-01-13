@@ -45,15 +45,3 @@ void batteryWatchdog(toreader* thisRef) {
         }
     }
 }
-
-QString openFile(toreader* thisRef, QString path) {
-    QFile file(path);
-    file.open(QIODevice::ReadOnly); // I believe it will work
-    QString allText = file.readAll();
-    file.close();
-    log("Readed file text: " + allText, classNameTorFunc);
-
-    // Here set all formattings
-    return allText;
-}
-

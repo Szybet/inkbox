@@ -9,6 +9,5 @@
 
 // Functions for toreader, to make it tidy
 void batteryWatchdog(toreader* thisRef);
-QString openFile(toreader* thisRef, QString path);
 
 #endif // TOREADERFUNCTIONS_H

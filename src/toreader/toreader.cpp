@@ -3,6 +3,7 @@
 #include "functions.h"
 #include "toreaderFunctions.h"
 #include "toreaderThread.h"
+#include "libreader-rs.h"
 
 #include <QWidget>
 #include <QGraphicsScene>
@@ -37,7 +38,7 @@ toreader::toreader(QWidget *parent) :
     connect(this, &toreader::requestPage, requestThreadFun, &toreaderThread::receivedPage);
 
     // TODO saved page
-    currentPage = 17;
+    currentPage = 10;
     QTimer::singleShot(0, this, [this] () {toreader::emitRequestPageFun(currentPage); });
 
     // Elements
@@ -585,13 +586,10 @@ toreader::toreader(QWidget *parent) :
     // Needed
     ui->gridLayout->setVerticalSpacing(0);
 
-    //ui->text->adjustSize();
-
+    // TODO
     ui->graphicsView->hide();
 
-    qDebug() << "sasfd" << ui->text->sizeHint();
-
-    setText("/inkbox/book/split/17");
+    setText("/inkbox/book/split/" + QString::number(currentPage));
 }
 
 toreader::~toreader()
@@ -609,7 +607,21 @@ void toreader::setText(QString pathProvided) {
     }
     else {
         log("File found", className);
-        ui->text->setHtml(openFile(this, pathProvided));
+        QString htmlCode = readFile(pathProvided);
+        //log("Pure HTML code: \n" + htmlCode + "\n", className);
+
+        // libreader-rs
+        // TODO: WARNING: Possible memory leak, if qt doesn't manage qstring that well
+        // more info:
+        // https://github.com/Szybet/libreader-rs/blob/0e65478200ec02487eb081637b63ac18e73c242e/src/lib.rs#L145
+
+        htmlCode = add_spaces(htmlCode.toStdString().c_str());
+        log("HTML code after adding spaces: \n" + htmlCode + "\n", className);
+
+        htmlCode = cut_off_head(htmlCode.toStdString().c_str());
+        log("HTML code after cutting off head: \n" + htmlCode + "\n", className);
+
+        ui->text->setHtml(htmlCode);
     }
 }
 

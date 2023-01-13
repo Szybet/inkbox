@@ -1,4 +1,4 @@
-QT       += core gui network
+QT += core gui network
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -179,6 +179,12 @@ RESOURCES += \
 
 INCLUDEPATH += $$system(find ./ -type d -print -path ./.git -prune | grep -v "./.git")
 
+# libsndfile - audio
 INCLUDEPATH += $$PWD/libs/libsndfile/include/
 DEPENDPATH += $$PWD/libs/libsndfile/include/
 LIBS += -L$$PWD/libs/prebuild -lsndfile
+
+# libreader-rs - toreader
+INCLUDEPATH += $$PWD/libs/libreader-rs/lib/include/
+DEPENDPATH += $$PWD/libs/libreader-rs/lib/include/
+LIBS += -L$$PWD/libs/prebuild -lreader_rs
