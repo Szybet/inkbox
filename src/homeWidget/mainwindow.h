@@ -20,6 +20,7 @@
 #include "librarywidget.h"
 #include "locallibrarywidget.h"
 #include "homepagewidget.h"
+#include "toreader.h"
 
 using namespace std;
 
@@ -108,7 +109,7 @@ private:
     Ui::MainWindow * ui;
     settingsChooser * settingsChooserWindow;
     apps * appsWindow;
-    reader * readerWindow;
+    toreader * readerWindow;
     quit * quitWindow;
     alert * alertWindow;
     usbmsSplash * usbmsWindow;

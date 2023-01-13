@@ -6,6 +6,7 @@
 #include "ui_apps.h"
 #include "functions.h"
 #include "audiodialog.h"
+#include "toreader.h"
 
 #include <QTime>
 #include <QDateTime>
@@ -917,6 +918,7 @@ void MainWindow::launchOtaUpdater() {
     otaManagerWindow->setAttribute(Qt::WA_DeleteOnClose);
 }
 
+// If toreader will get default, remove the bool relatiVePath from it
 void MainWindow::openBookFile(QString book, bool relativePath) {
     if(relativePath == true) {
         if(checkconfig("/opt/inkbox_genuine") == true) {
@@ -927,16 +929,14 @@ void MainWindow::openBookFile(QString book, bool relativePath) {
         }
     }
 
-    global::reader::skipOpenDialog = true;
-    global::reader::bookFile = book;
+    global::toreader::filePath = book;
     openReaderFramework();
 }
 
 void MainWindow::openReaderFramework() {
-    log("Launching Reader Framework", className);
-    readerWindow = new reader();
+    log("Launching Reader Framework ( toreader )", className);
+    readerWindow = new toreader();
     readerWindow->setAttribute(Qt::WA_DeleteOnClose);
-    connect(readerWindow, SIGNAL(openBookFile(QString, bool)), SLOT(openBookFile(QString, bool)));
     readerWindow->showFullScreen();
 }
 

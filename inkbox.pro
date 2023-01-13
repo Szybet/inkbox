@@ -26,6 +26,9 @@ DEFINES += GIT_COMMIT=\\\"$$GIT_COMMIT\\\"
 SOURCES += \
     src/apps/todo.cpp \
     src/audio/audiothread.cpp \
+    src/toreader/toreader.cpp \
+    src/toreader/toreaderFunctions.cpp \
+    src/toreader/toreaderthread.cpp \
     src/splash/alert.cpp \
     src/apps/apps.cpp \
     src/widgets/dialogs/audio/audiodialog.cpp \
@@ -74,6 +77,9 @@ SOURCES += \
 HEADERS += \
     src/apps/todo.h \
     src/audio/audiothread.h \
+    src/toreader/toreader.h \
+    src/toreader/toreaderFunctions.h \
+    src/toreader/toreaderthread.h \
     src/splash/alert.h \
     src/apps/apps.h \
     src/widgets/dialogs/audio/audiodialog.h \
@@ -121,6 +127,7 @@ HEADERS += \
 
 FORMS += \
     src/apps/todo.ui \
+    src/toreader/toreader.ui \
     src/splash/alert.ui \
     src/apps/apps.ui \
     src/widgets/dialogs/audio/audiodialog.ui \

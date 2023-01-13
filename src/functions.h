@@ -53,6 +53,9 @@ namespace global {
         inline int margins;
         inline QString currentViewportText;
     }
+    namespace toreader {
+        inline QString filePath;
+    }
     namespace kobox {
         inline bool showKoboxSplash;
         inline bool koboxSettingsRebootDialog;
