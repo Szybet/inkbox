@@ -35,102 +35,19 @@ toreader::toreader(QWidget *parent) :
     QThread * RequestThread = new QThread();
     toreaderThread* requestThreadFun = new toreaderThread(this);
     requestThreadFun->moveToThread(RequestThread);
-    connect(this, &toreader::requestPage, requestThreadFun, &toreaderThread::receivedPage);
+    // https://doc.qt.io/qt-6/qobject.html#connect
+    // https://doc.qt.io/qt-6/qt.html#ConnectionType-enum
+    connect(this, &toreader::requestPage, requestThreadFun, &toreaderThread::receivedPage, Qt::DirectConnection);
 
     // TODO saved page
     currentPage = 10;
-    QTimer::singleShot(0, this, [this] () {toreader::emitRequestPageFun(currentPage); });
 
-    // Elements
-    ui->brightnessStatus->setFont(QFont("u001"));
-    ui->fontLabel->setFont(QFont("u001"));
-    ui->sizeLabel->setFont(QFont("u001"));
-    ui->sizeValueLabel->setFont(QFont("Inter"));
-    ui->lineSpacingLabel->setFont(QFont("u001"));
-    ui->lineSpacingValueLabel->setFont(QFont("Inter"));
-    ui->marginsLabel->setFont(QFont("u001"));
-    ui->marginsValueLabel->setFont(QFont("Inter"));
-    ui->alignmentLabel->setFont(QFont("u001"));
-    ui->fontChooser->setFont(QFont("u001"));
-    ui->definitionStatusLabel->setFont(QFont("u001"));
-    ui->pageProgressBar->setFont(QFont("u001"));
+    // Important timing
+    QTimer::singleShot(10, this, [this] () {toreader::emitRequestPageFun(currentPage); });
+    log("Adjusting GUI look", className);
 
-    ui->previousBtn->setProperty("type", "borderless");
-    ui->nextBtn->setProperty("type", "borderless");
-    ui->optionsBtn->setProperty("type", "borderless");
-    ui->brightnessDecBtn->setProperty("type", "borderless");
-    ui->brightnessIncBtn->setProperty("type", "borderless");
-    ui->homeBtn->setProperty("type", "borderless");
-    ui->aboutBtn->setProperty("type", "borderless");
-    ui->alignLeftBtn->setProperty("type", "borderless");
-    ui->alignRightBtn->setProperty("type", "borderless");
-    ui->alignCenterBtn->setProperty("type", "borderless");
-    ui->alignLeftBtn->setProperty("type", "borderless");
-    ui->alignJustifyBtn->setProperty("type", "borderless");
-    ui->infoCloseBtn->setProperty("type", "borderless");
-    ui->saveWordBtn->setProperty("type", "borderless");
-    ui->previousDefinitionBtn->setProperty("type", "borderless");
-    ui->nextDefinitionBtn->setProperty("type", "borderless");
-    ui->nightModeBtn->setProperty("type", "borderless");
-    ui->searchBtn->setProperty("type", "borderless");
-    ui->gotoBtn->setProperty("type", "borderless");
-    ui->increaseScaleBtn->setProperty("type", "borderless");
-    ui->decreaseScaleBtn->setProperty("type", "borderless");
-    ui->quitBtn->setProperty("type", "borderless");
-    ui->viewHighlightsBtn->setProperty("type", "borderless");
-
-    // Icons
-    ui->alignLeftBtn->setText("");
-    ui->alignLeftBtn->setIcon(QIcon(":/resources/align-left.png"));
-    ui->alignRightBtn->setText("");
-    ui->alignRightBtn->setIcon(QIcon(":/resources/align-right.png"));
-    ui->alignCenterBtn->setText("");
-    ui->alignCenterBtn->setIcon(QIcon(":/resources/align-center.png"));
-    ui->alignJustifyBtn->setText("");
-    ui->alignJustifyBtn->setIcon(QIcon(":/resources/align-justify.png"));
-    ui->infoCloseBtn->setText("");
-    ui->infoCloseBtn->setIcon(QIcon(":/resources/close.png"));
-    ui->saveWordBtn->setText("");
-    ui->saveWordBtn->setIcon(QIcon(":/resources/star.png"));
-    ui->previousDefinitionBtn->setText("");
-    ui->previousDefinitionBtn->setIcon(QIcon(":/resources/chevron-left.png"));
-    ui->nextDefinitionBtn->setText("");
-    ui->nextDefinitionBtn->setIcon(QIcon(":/resources/chevron-right.png"));
-    ui->brightnessDecBtn->setText("");
-    ui->brightnessDecBtn->setIcon(QIcon(":/resources/minus.png"));
-    ui->brightnessIncBtn->setText("");
-    ui->brightnessIncBtn->setIcon(QIcon(":/resources/plus.png"));
-    ui->homeBtn->setText("");
-    ui->homeBtn->setIcon(QIcon(":/resources/home.png"));
-    ui->aboutBtn->setText("");
-    ui->aboutBtn->setIcon(QIcon(":/resources/info.png"));
-    ui->searchBtn->setText("");
-    ui->searchBtn->setIcon(QIcon(":/resources/search.png"));
-    ui->increaseScaleBtn->setText("");
-    ui->increaseScaleBtn->setIcon(QIcon(":/resources/zoom-in.png"));
-    ui->decreaseScaleBtn->setText("");
-    ui->decreaseScaleBtn->setIcon(QIcon(":/resources/zoom-out.png"));
-    ui->quitBtn->setText("");
-    ui->quitBtn->setIcon(QIcon(":/resources/power.png"));
-    ui->previousBtn->setText("");
-    ui->previousBtn->setIcon(QIcon(":/resources/arrow-left.png"));
-    ui->optionsBtn->setText("");
-    ui->optionsBtn->setIcon(QIcon(":/resources/settings.png"));
-    ui->nextBtn->setText("");
-    ui->nextBtn->setIcon(QIcon(":/resources/arrow-right.png"));
-    ui->viewHighlightsBtn->setText("");
-    ui->viewHighlightsBtn->setIcon(QIcon(":/resources/view-highlights.png"));
-
-    // On the Mini with QT_FONT_DPI set to 187 (default for this device), quitBtn makes the UI go beyond the limits of the screen when the menu bar is shown
-    if(global::deviceID == "n705\n") {
-        ui->quitBtn->hide();
-        ui->quitBtn->deleteLater();
-        ui->line_19->hide();
-        ui->line_19->deleteLater();
-    }
-
-    // Style misc.
-    ui->bookInfoLabel->setStyleSheet("font-style: italic");
+    // Look
+    mainSetStyle();
 
     // Manage
     // .config/04-book/word-lookup-enabled
@@ -161,17 +78,6 @@ toreader::toreader(QWidget *parent) :
         ui->text->setTextInteractionFlags(Qt::NoTextInteraction);
     }
     */
-
-    // Font misc.
-    int id = QFontDatabase::addApplicationFont(":/resources/fonts/CrimsonPro-Italic.ttf");
-    QString family = QFontDatabase::applicationFontFamilies(id).at(0);
-    QFont crimson(family);
-
-    // Stylesheet + misc.
-    QFile stylesheetFile("/mnt/onboard/.adds/inkbox/eink.qss");
-    stylesheetFile.open(QFile::ReadOnly);
-    this->setStyleSheet(stylesheetFile.readAll());
-    stylesheetFile.close();
 
     // Encryption, I don't know if "/opt/inkbox_genuine" true means its native inkbox, so I don't know if it's this code
     /*
@@ -204,94 +110,13 @@ toreader::toreader(QWidget *parent) :
         }
         */
 
-    log("Opening file '" + global::toreader::filePath + "'", className);
-
-
-    // Font
-    global::reader::font = readFile(".config/04-book/font");
-    if(global::reader::font == "u001") {
-        ui->fontChooser->setCurrentText("Univers (u001)");
-    }
-    else {
-        ui->fontChooser->setCurrentText(global::reader::font);
-    }
-    // Night mode
-    if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n") {
-        if(checkconfig(".config/10-dark_mode/config") == true) {
-            log("Setting night mode to ON", className);
-            string_writeconfig("/tmp/invertScreen", "y");
-            ui->nightModeBtn->setText("");
-            ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-full.png"));
-            isNightModeActive = true;
-        }
-        else {
-            log("Setting night mode to OFF", className);
-            string_writeconfig("/tmp/invertScreen", "n");
-            ui->nightModeBtn->setText("");
-            ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-empty.png"));
-            isNightModeActive = false;
-        }
-    }
-    else {
-        log("Night mode disabled by software", className);
-        ui->line_7->hide();
-        ui->line_7->deleteLater();
-        ui->nightModeBtn->hide();
-        ui->nightModeBtn->deleteLater();
-    }
-
-    if(global::deviceID == "n873\n") {
-        ui->nextBtn->setStyleSheet("padding: 13.5px");
-        ui->previousBtn->setStyleSheet("padding: 13.5px");
-        ui->optionsBtn->setStyleSheet("padding: 13.5px");
-    }
-    else if(global::deviceID == "n437\n") {
-        ui->nextBtn->setStyleSheet("padding: 12.5px");
-        ui->previousBtn->setStyleSheet("padding: 12.5px");
-        ui->optionsBtn->setStyleSheet("padding: 12.5px");
-    }
-    else {
-        ui->nextBtn->setStyleSheet("padding: 10px");
-        ui->previousBtn->setStyleSheet("padding: 10px");
-        ui->optionsBtn->setStyleSheet("padding: 10px");
-    }
-    ui->sizeValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
-    ui->lineSpacingValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
-    ui->marginsValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
-    ui->homeBtn->setStyleSheet("font-size: 9pt; padding: 5px");
-    ui->aboutBtn->setStyleSheet("font-size: 9pt; padding: 5px");
-    ui->fontChooser->setStyleSheet("font-size: 9pt");
-    ui->gotoBtn->setStyleSheet("font-size: 9pt; padding: 9px; font-weight: bold; background: lightGrey");
-    ui->pageNumberLabel->setFont(QFont("Source Serif Pro"));
-    ui->viewHighlightsBtn->setStyleSheet("padding: 9px");
-
-    // Hiding the menubar + definition widget + brightness widget + buttons bar widget
-    ui->menuWidget->setVisible(false);
-    ui->brightnessWidget->setVisible(false);
-    ui->menuBarWidget->setVisible(false);
-    ui->buttonsBarWidget->setVisible(false);
-    ui->pdfScaleWidget->setVisible(false);
-    ui->wordWidget->setVisible(false);
-    if(checkconfig(".config/11-menubar/sticky") == true) {
-        ui->menuWidget->setVisible(true);
-        ui->statusBarWidget->setVisible(true);
-    }
-    else {
-        ui->menuWidget->setVisible(false);
-        ui->statusBarWidget->setVisible(false);
-    }
-    ui->pageWidget->hide();
     // Use enum
+    // TODO: What is this
     /*
     if(pdf_file_match(book_file) == true) {
         ui->line_4->setLineWidth(2);
     }
     */
-
-    // Topbar widget / book info
-    ui->topbarStackedWidget->setVisible(true);
-    //showTopbarWidget = true;
-    ui->bookInfoLabel->setFont(crimson);
 
     // Getting brightness level
     int brightness_value;
@@ -306,44 +131,6 @@ toreader::toreader(QWidget *parent) :
         brightness_value = get_brightness();
     }
     ui->brightnessStatus->setValue(brightness_value);
-
-    // Defining pixmaps
-    // Getting the screen's size
-    float sW = QGuiApplication::screens()[0]->size().width();
-    float sH = QGuiApplication::screens()[0]->size().height();
-    // Defining what the icons' size will be
-    if(checkconfig("/opt/inkbox_genuine") == true) {
-        float stdIconWidth;
-        float stdIconHeight;
-        if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
-            stdIconWidth = sW / 16;
-            stdIconHeight = sW / 16;
-        }
-        else {
-            stdIconWidth = sW / 19;
-            stdIconHeight = sH / 19;
-        }
-        QPixmap chargingPixmap(":/resources/battery_charging.png");
-        scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap fullPixmap(":/resources/battery_full.png");
-        scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap halfPixmap(":/resources/battery_half.png");
-        scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap emptyPixmap(":/resources/battery_empty.png");
-        scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
-    else {
-        float stdIconWidth = sW / 19;
-        float stdIconHeight = sH / 19;
-        QPixmap chargingPixmap(":/resources/battery_charging.png");
-        scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-        QPixmap fullPixmap(":/resources/battery_full.png");
-        scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-        QPixmap halfPixmap(":/resources/battery_half.png");
-        scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-        QPixmap emptyPixmap(":/resources/battery_empty.png");
-        scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-    }
 
     // Checking if there is a page refresh setting set
     string_checkconfig(".config/04-book/refresh");
@@ -396,11 +183,9 @@ toreader::toreader(QWidget *parent) :
 
     // If needed, show scroll bar when rendering engine isn't doing its job properly
     if(checkconfig(".config/14-reader_scrollbar/config") == true) {
-        ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     }
     else {
-        ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     }
 
@@ -589,7 +374,10 @@ toreader::toreader(QWidget *parent) :
     // TODO
     ui->graphicsView->hide();
 
-    setText("/inkbox/book/split/" + QString::number(currentPage));
+    QString tmpPage = "/inkbox/book/split/" + QString::number(currentPage);
+    // Important timing
+    QTimer::singleShot(20, this, [this, tmpPage] () {toreader::setText(tmpPage); });
+    log("Done showing GUI", className);
 }
 
 toreader::~toreader()
@@ -598,30 +386,43 @@ toreader::~toreader()
 }
 
 void toreader::setText(QString pathProvided) {
-    if(QFile{pathProvided}.exists() == false) {
+    log("SetText called", className);
+    global::toreader::FileReadyMutex.lock();
+    if(global::toreader::fileReady == false) {
+        global::toreader::FileReadyMutex.unlock();
         log("File " + pathProvided + " doesn't exist, waiting", className);
-        // Lambda curse
+        // Lambda curse, idk other things didn't worked
         // https://forum.qt.io/topic/73714/qtimer-singleshot-forward-parameter-to-slot-called/9
         // https://stackoverflow.com/questions/38595834/compilation-error-this-cannot-be-implicitly-captured-in-this-context
-        QTimer::singleShot(100, this, [pathProvided, this] () {toreader::setText(pathProvided); });
+        QTimer::singleShot(30, this, [pathProvided, this] () {toreader::setText(pathProvided); });
     }
     else {
-        log("File found", className);
-        QString htmlCode = readFile(pathProvided);
-        //log("Pure HTML code: \n" + htmlCode + "\n", className);
+        global::toreader::FileReadyMutex.unlock();
+        if(QFile{pathProvided}.exists() == false) {
+            log("WARNING: Page file should exist, but it doesn't", className);
+        }
+        else {
+            global::toreader::fileReady = false;
+            log("File found", className);
+            QString htmlCode = readFile(pathProvided);
+            //log("Pure HTML code: \n" + htmlCode + "\n", className);
 
-        // libreader-rs
-        // TODO: WARNING: Possible memory leak, if qt doesn't manage qstring that well
-        // more info:
-        // https://github.com/Szybet/libreader-rs/blob/0e65478200ec02487eb081637b63ac18e73c242e/src/lib.rs#L145
+            // libreader-rs
+            // TODO: WARNING: Possible memory leak, if qt doesn't manage qstring that well
+            // more info:
+            // https://github.com/Szybet/libreader-rs/blob/0e65478200ec02487eb081637b63ac18e73c242e/src/lib.rs#L145
 
-        htmlCode = add_spaces(htmlCode.toStdString().c_str());
-        log("HTML code after adding spaces: \n" + htmlCode + "\n", className);
+            htmlCode = add_spaces(htmlCode.toStdString().c_str());
+            //log("HTML code after adding spaces: \n" + htmlCode + "\n", className);
 
-        htmlCode = cut_off_head(htmlCode.toStdString().c_str());
-        log("HTML code after cutting off head: \n" + htmlCode + "\n", className);
+            htmlCode = cut_off_head(htmlCode.toStdString().c_str());
+            //log("HTML code after cutting off head: \n" + htmlCode + "\n", className);
 
-        ui->text->setHtml(htmlCode);
+            // Yea i got problems with that too, needed logs
+            log("Setting text", className);
+            ui->text->setHtml(htmlCode);
+            log("Setted text", className);
+        }
     }
 }
 
@@ -639,4 +440,239 @@ void toreader::on_nextBtn_clicked()
 
 void toreader::emitRequestPageFun(int page) {
     emit requestPage(page);
+}
+
+void toreader::mainSetStyle() {
+    // Stylesheet things
+    QFile stylesheetFile("/mnt/onboard/.adds/inkbox/eink.qss");
+    stylesheetFile.open(QFile::ReadOnly);
+    this->setStyleSheet(stylesheetFile.readAll());
+    stylesheetFile.close();
+    ui->bookInfoLabel->setStyleSheet("font-style: italic");
+    ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+
+    iconsSizeSet();
+    hideThings();
+    nightmode();
+    setFonts();
+
+    // Device specific
+
+    // On the Mini with QT_FONT_DPI set to 187 (default for this device), quitBtn makes the UI go beyond the limits of the screen when the menu bar is shown
+    if(global::deviceID == "n705\n") {
+        ui->quitBtn->hide();
+        ui->quitBtn->deleteLater();
+        ui->line_19->hide();
+        ui->line_19->deleteLater();
+    }}
+
+void toreader::iconsSizeSet() {
+    // Elements
+    ui->brightnessStatus->setFont(QFont("u001"));
+    ui->fontLabel->setFont(QFont("u001"));
+    ui->sizeLabel->setFont(QFont("u001"));
+    ui->sizeValueLabel->setFont(QFont("Inter"));
+    ui->lineSpacingLabel->setFont(QFont("u001"));
+    ui->lineSpacingValueLabel->setFont(QFont("Inter"));
+    ui->marginsLabel->setFont(QFont("u001"));
+    ui->marginsValueLabel->setFont(QFont("Inter"));
+    ui->alignmentLabel->setFont(QFont("u001"));
+    ui->fontChooser->setFont(QFont("u001"));
+    ui->definitionStatusLabel->setFont(QFont("u001"));
+    ui->pageProgressBar->setFont(QFont("u001"));
+
+    ui->previousBtn->setProperty("type", "borderless");
+    ui->nextBtn->setProperty("type", "borderless");
+    ui->optionsBtn->setProperty("type", "borderless");
+    ui->brightnessDecBtn->setProperty("type", "borderless");
+    ui->brightnessIncBtn->setProperty("type", "borderless");
+    ui->homeBtn->setProperty("type", "borderless");
+    ui->aboutBtn->setProperty("type", "borderless");
+    ui->alignLeftBtn->setProperty("type", "borderless");
+    ui->alignRightBtn->setProperty("type", "borderless");
+    ui->alignCenterBtn->setProperty("type", "borderless");
+    ui->alignLeftBtn->setProperty("type", "borderless");
+    ui->alignJustifyBtn->setProperty("type", "borderless");
+    ui->infoCloseBtn->setProperty("type", "borderless");
+    ui->saveWordBtn->setProperty("type", "borderless");
+    ui->previousDefinitionBtn->setProperty("type", "borderless");
+    ui->nextDefinitionBtn->setProperty("type", "borderless");
+    ui->nightModeBtn->setProperty("type", "borderless");
+    ui->searchBtn->setProperty("type", "borderless");
+    ui->gotoBtn->setProperty("type", "borderless");
+    ui->increaseScaleBtn->setProperty("type", "borderless");
+    ui->decreaseScaleBtn->setProperty("type", "borderless");
+    ui->quitBtn->setProperty("type", "borderless");
+    ui->viewHighlightsBtn->setProperty("type", "borderless");
+
+    // Icons
+    ui->alignLeftBtn->setText("");
+    ui->alignLeftBtn->setIcon(QIcon(":/resources/align-left.png"));
+    ui->alignRightBtn->setText("");
+    ui->alignRightBtn->setIcon(QIcon(":/resources/align-right.png"));
+    ui->alignCenterBtn->setText("");
+    ui->alignCenterBtn->setIcon(QIcon(":/resources/align-center.png"));
+    ui->alignJustifyBtn->setText("");
+    ui->alignJustifyBtn->setIcon(QIcon(":/resources/align-justify.png"));
+    ui->infoCloseBtn->setText("");
+    ui->infoCloseBtn->setIcon(QIcon(":/resources/close.png"));
+    ui->saveWordBtn->setText("");
+    ui->saveWordBtn->setIcon(QIcon(":/resources/star.png"));
+    ui->previousDefinitionBtn->setText("");
+    ui->previousDefinitionBtn->setIcon(QIcon(":/resources/chevron-left.png"));
+    ui->nextDefinitionBtn->setText("");
+    ui->nextDefinitionBtn->setIcon(QIcon(":/resources/chevron-right.png"));
+    ui->brightnessDecBtn->setText("");
+    ui->brightnessDecBtn->setIcon(QIcon(":/resources/minus.png"));
+    ui->brightnessIncBtn->setText("");
+    ui->brightnessIncBtn->setIcon(QIcon(":/resources/plus.png"));
+    ui->homeBtn->setText("");
+    ui->homeBtn->setIcon(QIcon(":/resources/home.png"));
+    ui->aboutBtn->setText("");
+    ui->aboutBtn->setIcon(QIcon(":/resources/info.png"));
+    ui->searchBtn->setText("");
+    ui->searchBtn->setIcon(QIcon(":/resources/search.png"));
+    ui->increaseScaleBtn->setText("");
+    ui->increaseScaleBtn->setIcon(QIcon(":/resources/zoom-in.png"));
+    ui->decreaseScaleBtn->setText("");
+    ui->decreaseScaleBtn->setIcon(QIcon(":/resources/zoom-out.png"));
+    ui->quitBtn->setText("");
+    ui->quitBtn->setIcon(QIcon(":/resources/power.png"));
+    ui->previousBtn->setText("");
+    ui->previousBtn->setIcon(QIcon(":/resources/arrow-left.png"));
+    ui->optionsBtn->setText("");
+    ui->optionsBtn->setIcon(QIcon(":/resources/settings.png"));
+    ui->nextBtn->setText("");
+    ui->nextBtn->setIcon(QIcon(":/resources/arrow-right.png"));
+    ui->viewHighlightsBtn->setText("");
+    ui->viewHighlightsBtn->setIcon(QIcon(":/resources/view-highlights.png"));
+
+    // Defining pixmaps
+    // Getting the screen's size
+    float sW = QGuiApplication::screens()[0]->size().width();
+    float sH = QGuiApplication::screens()[0]->size().height();
+    // Defining what the icons' size will be
+    if(checkconfig("/opt/inkbox_genuine") == true) {
+        float stdIconWidth;
+        float stdIconHeight;
+        if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
+            stdIconWidth = sW / 16;
+            stdIconHeight = sW / 16;
+        }
+        else {
+            stdIconWidth = sW / 19;
+            stdIconHeight = sH / 19;
+        }
+        QPixmap chargingPixmap(":/resources/battery_charging.png");
+        scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QPixmap fullPixmap(":/resources/battery_full.png");
+        scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QPixmap halfPixmap(":/resources/battery_half.png");
+        scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        QPixmap emptyPixmap(":/resources/battery_empty.png");
+        scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    }
+    else {
+        float stdIconWidth = sW / 19;
+        float stdIconHeight = sH / 19;
+        QPixmap chargingPixmap(":/resources/battery_charging.png");
+        scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        QPixmap fullPixmap(":/resources/battery_full.png");
+        scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        QPixmap halfPixmap(":/resources/battery_half.png");
+        scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        QPixmap emptyPixmap(":/resources/battery_empty.png");
+        scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+    }
+}
+
+void toreader::setFonts() {
+    global::reader::font = readFile(".config/04-book/font");
+    if(global::reader::font == "u001") {
+        ui->fontChooser->setCurrentText("Univers (u001)");
+    }
+    else {
+        ui->fontChooser->setCurrentText(global::reader::font);
+    }
+
+    if(global::deviceID == "n873\n") {
+        ui->nextBtn->setStyleSheet("padding: 13.5px");
+        ui->previousBtn->setStyleSheet("padding: 13.5px");
+        ui->optionsBtn->setStyleSheet("padding: 13.5px");
+    }
+    else if(global::deviceID == "n437\n") {
+        ui->nextBtn->setStyleSheet("padding: 12.5px");
+        ui->previousBtn->setStyleSheet("padding: 12.5px");
+        ui->optionsBtn->setStyleSheet("padding: 12.5px");
+    }
+    else {
+        ui->nextBtn->setStyleSheet("padding: 10px");
+        ui->previousBtn->setStyleSheet("padding: 10px");
+        ui->optionsBtn->setStyleSheet("padding: 10px");
+    }
+    ui->sizeValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
+    ui->lineSpacingValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
+    ui->marginsValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
+    ui->homeBtn->setStyleSheet("font-size: 9pt; padding: 5px");
+    ui->aboutBtn->setStyleSheet("font-size: 9pt; padding: 5px");
+    ui->fontChooser->setStyleSheet("font-size: 9pt");
+    ui->gotoBtn->setStyleSheet("font-size: 9pt; padding: 9px; font-weight: bold; background: lightGrey");
+    ui->pageNumberLabel->setFont(QFont("Source Serif Pro"));
+    ui->viewHighlightsBtn->setStyleSheet("padding: 9px");
+
+
+    int id = QFontDatabase::addApplicationFont(":/resources/fonts/CrimsonPro-Italic.ttf");
+    QString family = QFontDatabase::applicationFontFamilies(id).at(0);
+    QFont crimson(family);
+    ui->bookInfoLabel->setFont(crimson);
+}
+
+void toreader::nightmode() {
+    // Night mode
+    if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n") {
+        if(checkconfig(".config/10-dark_mode/config") == true) {
+            log("Setting night mode to ON", className);
+            string_writeconfig("/tmp/invertScreen", "y");
+            ui->nightModeBtn->setText("");
+            ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-full.png"));
+            isNightModeActive = true;
+        }
+        else {
+            log("Setting night mode to OFF", className);
+            string_writeconfig("/tmp/invertScreen", "n");
+            ui->nightModeBtn->setText("");
+            ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-empty.png"));
+            isNightModeActive = false;
+        }
+    }
+    else {
+        log("Night mode disabled by software", className);
+        ui->line_7->hide();
+        ui->line_7->deleteLater();
+        ui->nightModeBtn->hide();
+        ui->nightModeBtn->deleteLater();
+    }
+}
+
+void toreader::hideThings() {
+    // Hiding the menubar + definition widget + brightness widget + buttons bar widget
+    ui->menuWidget->setVisible(false);
+    ui->brightnessWidget->setVisible(false);
+    ui->menuBarWidget->setVisible(false);
+    ui->buttonsBarWidget->setVisible(false);
+    ui->pdfScaleWidget->setVisible(false);
+    ui->wordWidget->setVisible(false);
+    if(checkconfig(".config/11-menubar/sticky") == true) {
+        ui->menuWidget->setVisible(true);
+        ui->statusBarWidget->setVisible(true);
+    }
+    else {
+        ui->menuWidget->setVisible(false);
+        ui->statusBarWidget->setVisible(false);
+    }
+    ui->pageWidget->hide();
+
+    //showTopbarWidget = true;
+    // Topbar widget / book info
+    ui->topbarStackedWidget->setVisible(true);
 }

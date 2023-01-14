@@ -1,5 +1,6 @@
 #include "toreaderThread.h"
 #include "functions.h"
+#include <unistd.h>
 
 toreaderThread::toreaderThread(QObject *parent)
     : QObject(parent)
@@ -8,10 +9,34 @@ toreaderThread::toreaderThread(QObject *parent)
 
 void toreaderThread::receivedPage(int page) {
     log("Requested page " + QString::number(page), className);
-    int forwardToCreate = 1;
-    for(int i = page - forwardToCreate; i <= page + forwardToCreate; i++) {
-        if(i > 0) {
-            getPage(i);
+    if(secondCall == false) {
+        getPage(page);
+        global::toreader::FileReadyMutex.lock();
+        global::toreader::fileReady = true;
+        global::toreader::FileReadyMutex.unlock();
+    }
+    else {
+        log("Second call", className);
+        secondCall = true;
+    }
+
+    if(firstCall == true) {
+        log("Calling second time because first page", className);
+        firstCall = false;
+        secondCall = true;
+        // This timing is important, for the first call when opening reader
+        QTimer::singleShot(500, this, [this, page] () {toreaderThread::receivedPage(page); });
+        return void();
+    }
+    int forwardToCreate = 5;
+    // Here prioritise next pages
+    // TODO: This still freezes the gui somehow, maybe call those next pages after first ui->setText
+    int minusCount = 2;
+    for(int i = page + 1; i <= page + forwardToCreate; i++) {
+        getPage(i);
+        if(page - minusCount > 0) {
+            getPage(page - minusCount);
+            minusCount = minusCount + 1;
         }
     }
 }

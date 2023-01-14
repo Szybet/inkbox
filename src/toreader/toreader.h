@@ -25,6 +25,13 @@ public:
     void setText(QString path);
     void emitRequestPageFun(int page); // To call from singleshot
 
+    // those functions can't be in toreader Functions because ui-> is private
+    void mainSetStyle(); // Main function calling others to set style, to make the code above better looking
+    void iconsSizeSet();
+    void setFonts();
+    void nightmode();
+    void hideThings();
+
 signals:
     void requestPage(int page);
 

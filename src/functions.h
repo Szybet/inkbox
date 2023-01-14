@@ -55,6 +55,8 @@ namespace global {
     }
     namespace toreader {
         inline QString filePath;
+        inline QMutex FileReadyMutex;
+        inline bool fileReady;
     }
     namespace kobox {
         inline bool showKoboxSplash;

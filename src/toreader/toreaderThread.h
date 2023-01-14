@@ -13,6 +13,8 @@ public:
     void receivedPage(int page);
     void getPage(int page);
     QVector<int> existingPages;
+    bool firstCall = true; // dsanmfjh
+    bool secondCall = false;
 
 private:
 };
