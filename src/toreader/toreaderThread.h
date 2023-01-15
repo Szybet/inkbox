@@ -10,11 +10,13 @@ class toreaderThread : public QObject
 public:
     explicit toreaderThread(QObject *parent = nullptr);
     QString className = this->metaObject()->className();
-    void receivedPage(int page);
     void getPage(int page);
     QVector<int> existingPages;
     bool firstCall = true; // dsanmfjh
     bool secondCall = false;
+
+public slots:
+    void receivedPage(int page);
 
 private:
 };

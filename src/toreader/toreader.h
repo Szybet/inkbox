@@ -2,6 +2,7 @@
 #define TOREADER_H
 
 #include <QWidget>
+#include "toreaderThread.h"
 
 namespace Ui {
 class toreader;
@@ -42,6 +43,8 @@ private slots:
 
 private:
     Ui::toreader *ui;
+    QThread * RequestThread;
+    toreaderThread* requestThreadFun;
 };
 
 #endif // TOREADER_H

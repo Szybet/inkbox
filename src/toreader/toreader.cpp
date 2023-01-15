@@ -32,12 +32,14 @@ toreader::toreader(QWidget *parent) :
     // this can't be launched here... so it will be launched at the end
 
     // Thread
-    QThread * RequestThread = new QThread();
-    toreaderThread* requestThreadFun = new toreaderThread(this);
+    RequestThread = new QThread();
+    requestThreadFun = new toreaderThread();
     requestThreadFun->moveToThread(RequestThread);
+    RequestThread->start();
     // https://doc.qt.io/qt-6/qobject.html#connect
     // https://doc.qt.io/qt-6/qt.html#ConnectionType-enum
-    connect(this, &toreader::requestPage, requestThreadFun, &toreaderThread::receivedPage, Qt::DirectConnection);
+    connect(this, &toreader::requestPage, requestThreadFun, &toreaderThread::receivedPage, Qt::QueuedConnection);
+    // TODO: QCoreApplication::processEvents();
 
     // TODO saved page
     currentPage = 10;
