@@ -56,7 +56,11 @@ namespace global {
     namespace toreader {
         inline QString filePath;
         inline QMutex FileReadyMutex;
-        inline bool fileReady;
+        inline bool fileReady = false;
+        inline QMutex StopMutex; // For both stop values
+        inline bool stop = false;
+        inline int stopCount = 0; // If no task ( that we want to stop is running, for example cache ) is running, it's 0. Tasks add to this, and then delete itself ( -1 ). // It's more for logs than anything
+        // Also the last StopCount function will turn bool stop to false back and give a log
     }
     namespace kobox {
         inline bool showKoboxSplash;
@@ -1229,7 +1233,7 @@ namespace {
         global::audio::audioMutex.unlock();
         waitForAudioThread();
     }
-    // I'm sick of poor code
+    // I'm sick of poor code - use this for configs
     void bool_writeconfig(QString file, bool option) {
         QString str;
         if(option == true) {
@@ -1242,6 +1246,30 @@ namespace {
         fhandler.open(file.toStdString());
         fhandler << str.toStdString();
         fhandler.close();
+    }
+    namespace mutex {
+        bool boolCheck(bool& theBool, QMutex& theMutex) {
+            bool returnBool;
+            theMutex.lock();
+            returnBool = theBool;
+            theMutex.unlock();
+            return returnBool;
+        }
+        void intPlus(int& theInt, QMutex& theMutex) {
+            theMutex.lock();
+            theInt++;
+            theMutex.unlock();
+        }
+        void intMinus(int& theInt, QMutex& theMutex) {
+            theMutex.lock();
+            theInt--;
+            theMutex.unlock();
+        }
+        void boolSet(bool& theBool, QMutex& theMutex, bool toSet) {
+            theMutex.lock();
+            theBool = toSet;
+            theMutex.unlock();
+        }
     }
 }
 

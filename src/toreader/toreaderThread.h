@@ -2,6 +2,7 @@
 #define TOREADERTHREAD_H
 
 #include <QObject>
+#include <QMutex>
 
 class toreaderThread : public QObject
 {
@@ -9,14 +10,23 @@ class toreaderThread : public QObject
 
 public:
     explicit toreaderThread(QObject *parent = nullptr);
+
+    enum RequestType {
+        Launch,
+        Cache,
+        Next,
+        Back,
+        GoTo,
+    };
+    Q_ENUM(RequestType);
+
     QString className = this->metaObject()->className();
     void getPage(int page);
     QVector<int> existingPages;
-    bool firstCall = true; // dsanmfjh
-    bool secondCall = false;
+    void stopManage(QMutex& mutexOfThings, int& intToCheck, int valueToLookFor, bool& boolToSet, bool boolValue, QString logToGive);
 
 public slots:
-    void receivedPage(int page);
+    void receivedPage(int page, RequestType request);
 
 private:
 };

@@ -15,6 +15,7 @@ class toreader : public QWidget
 public:
     explicit toreader(QWidget *parent = nullptr);
     ~toreader();
+
     QString className = this->metaObject()->className();
     bool isNightModeActive;
     // Battery icons?
@@ -24,7 +25,7 @@ public:
     QPixmap scaledEmptyPixmap;
     int currentPage = 1;
     void setText(QString path);
-    void emitRequestPageFun(int page); // To call from singleshot
+    void emitRequestPageFun(int page, toreaderThread::RequestType request); // To call from singleshot
 
     // those functions can't be in toreader Functions because ui-> is private
     void mainSetStyle(); // Main function calling others to set style, to make the code above better looking
@@ -34,7 +35,7 @@ public:
     void hideThings();
 
 signals:
-    void requestPage(int page);
+    void requestPage(int page, toreaderThread::RequestType request);
 
 private slots:
     void on_previousBtn_clicked();

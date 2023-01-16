@@ -45,7 +45,7 @@ toreader::toreader(QWidget *parent) :
     currentPage = 10;
 
     // Important timing
-    QTimer::singleShot(10, this, [this] () {toreader::emitRequestPageFun(currentPage); });
+    QTimer::singleShot(10, this, [this] () {toreader::emitRequestPageFun(currentPage, toreaderThread::Launch); });
     log("Adjusting GUI look", className);
 
     // Look
@@ -376,8 +376,9 @@ toreader::toreader(QWidget *parent) :
     // TODO
     ui->graphicsView->hide();
 
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+
     QString tmpPage = "/inkbox/book/split/" + QString::number(currentPage);
-    // Important timing
     QTimer::singleShot(20, this, [this, tmpPage] () {toreader::setText(tmpPage); });
     log("Done showing GUI", className);
 }
@@ -388,15 +389,16 @@ toreader::~toreader()
 }
 
 void toreader::setText(QString pathProvided) {
-    log("SetText called", className);
+    //log("SetText called", className);
+    // TODO: use function
     global::toreader::FileReadyMutex.lock();
     if(global::toreader::fileReady == false) {
         global::toreader::FileReadyMutex.unlock();
-        log("File " + pathProvided + " doesn't exist, waiting", className);
+        //log("File " + pathProvided + " doesn't exist, waiting", className);
         // Lambda curse, idk other things didn't worked
         // https://forum.qt.io/topic/73714/qtimer-singleshot-forward-parameter-to-slot-called/9
         // https://stackoverflow.com/questions/38595834/compilation-error-this-cannot-be-implicitly-captured-in-this-context
-        QTimer::singleShot(30, this, [pathProvided, this] () {toreader::setText(pathProvided); });
+        QTimer::singleShot(50, this, [pathProvided, this] () {toreader::setText(pathProvided); });
     }
     else {
         global::toreader::FileReadyMutex.unlock();
@@ -423,25 +425,34 @@ void toreader::setText(QString pathProvided) {
             // Yea i got problems with that too, needed logs
             log("Setting text", className);
             ui->text->setHtml(htmlCode);
+            QCoreApplication::processEvents(QEventLoop::AllEvents);
             log("Setted text", className);
+            emitRequestPageFun(currentPage, toreaderThread::Cache);
         }
     }
 }
 
 void toreader::on_previousBtn_clicked()
 {
-
+    if(currentPage != 0) {
+        currentPage = currentPage - 1;
+    }
+    mutex::boolSet(global::toreader::stop, global::toreader::StopMutex, true);
+    emitRequestPageFun(currentPage, toreaderThread::Back);
+    setText("/inkbox/book/split/" + QString::number(currentPage));
 }
 
 void toreader::on_nextBtn_clicked()
 {
+    // TODO: Last page detection
     currentPage = currentPage + 1;
-    QTimer::singleShot(0, this, [this] () {toreader::emitRequestPageFun(currentPage); });
+    mutex::boolSet(global::toreader::stop, global::toreader::StopMutex, true);
+    emitRequestPageFun(currentPage, toreaderThread::Next);
     setText("/inkbox/book/split/" + QString::number(currentPage));
 }
 
-void toreader::emitRequestPageFun(int page) {
-    emit requestPage(page);
+void toreader::emitRequestPageFun(int page, toreaderThread::RequestType request) {
+    emit requestPage(page, request);
 }
 
 void toreader::mainSetStyle() {
