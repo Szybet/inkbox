@@ -8,6 +8,7 @@
 #include "quit.h"
 #include "textdialog.h"
 #include "highlightslistdialog.h"
+#include "brightnessdialog.h"
 
 #include <QWidget>
 #include <QGraphicsScene>
@@ -84,7 +85,6 @@ public:
 
     QString ittext;
     QString book_file;
-    bool batt_status;
     QString selected_text;
     QString word;
     QString words; // Saved words
@@ -131,9 +131,6 @@ private slots:
     void on_nextBtn_clicked();
     void on_previousBtn_clicked();
     void on_optionsBtn_clicked();
-    void on_brightnessDecBtn_clicked();
-    void on_brightnessIncBtn_clicked();
-    void on_aboutBtn_clicked();
     void on_homeBtn_clicked();
     void on_fontChooser_currentIndexChanged(const QString &arg1);
     void on_alignLeftBtn_clicked();
@@ -175,8 +172,8 @@ private slots:
     void setMargins(int margins, bool write = true);
     void on_lineSpacingSlider_valueChanged(int value);
     void on_marginsSlider_valueChanged(int value);
-    void on_wordSearchBox_clicked(bool checked);
-    void on_highlightingBox_clicked(bool checked);
+    void on_brightnessBtn_clicked();
+    void setCinematicBrightnessWarmthSlot();
 
 signals:
     void openBookFile(QString book, bool relativePath);
@@ -190,6 +187,7 @@ private:
     textDialog * textDialogWindow;
     highlightsListDialog * highlightsListDialogWindow;
     QGraphicsScene * graphicsScene;
+    brightnessDialog * brightnessDialogWindow;
 };
 
 #endif // READER_H

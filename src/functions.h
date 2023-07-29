@@ -20,6 +20,7 @@
 #include <QJsonValue>
 #include <QJsonArray>
 #include <QCryptographicHash>
+#include <QNetworkInterface>
 #include <QMutex>
 
 #include <stdio.h>
@@ -96,7 +97,7 @@ namespace global {
     namespace text {
         inline bool textBrowserDialog;
         inline QString textBrowserContents;
-        inline QString textBrowserTitle = ""; // At default empty, so "Information" is displayed
+        inline QString textBrowserTitle = ""; // At default: empty; "Information" will be displayed
     }
     namespace keyboard {
         inline bool keyboardDialog;
@@ -141,6 +142,7 @@ namespace global {
         inline QString bookTitle;
         inline bool librarySearchDialog;
         inline bool libraryResults;
+        inline bool librarySyncDialog;
     }
     namespace bookInfoDialog {
         inline bool localInfoDialog;
@@ -206,35 +208,36 @@ namespace global {
         };
     }
     namespace audio {
-        inline bool enabled = false;
-        struct musicFile {
-            QString path;
-            QString name; // Cutted path for easier use in names
-            int lengths;
-            QString length; // In minutes:seconds
-        };
-        enum class Action { // Function will be called with this enum
-            Play,
-            Next,
-            Previous,
-            Pause,
-            Continue,
-            Stop, // Sets paused to false, isSomethingCurrentlyPlaying to false, and itemCurrentlyPLaying to -1, also stops playing
-            None,
-            SetVolume,
-        };
-        inline Action currentAction = Action::None;
-        inline bool actionDone = false; // bool to await for answer
-        inline QVector<musicFile> queue;
-        inline QVector<musicFile> fileList;
-        inline int itemCurrentlyPLaying = 0; // Also indicates in the queue menu which a grey color which is playing
-        inline QMutex audioMutex; // These variables will be shared between threads, so here its to protect it
-        inline int progressSeconds = 0;
-        inline bool paused = false;
-        inline bool isSomethingCurrentlyPlaying = false;
-        inline bool firstScan = true;
-        inline int volumeLevel = 100;
-    }
+            inline bool enabled = false;
+            struct musicFile {
+                QString path;
+                QString name; // Cut path for easier use in names
+                int lengths; // length Seconds
+                QString length; // In minutes:seconds
+                int id;
+            };
+            // 'None' is when 'currentAction' is empty
+            enum class Action { // Function will be called with this enum
+                Play,
+                Next,
+                Previous,
+                Pause,
+                Continue,
+                Stop, // Sets 'paused' to false, 'isSomethingCurrentlyPlaying' to false, and 'itemCurrentlyPlaying' to -1; also stops playing
+                SetVolume,
+            };
+            inline QVector<Action> currentAction;
+            inline QVector<musicFile> queue;
+            inline QVector<musicFile> fileList;
+            inline int itemCurrentlyPlaying = -1; // Also indicates in the queue menu which a gray color which is playing
+            inline QMutex audioMutex; // These variables will be shared between threads, so here, it's to protect it
+            inline int progressSeconds = -5; // -5 at default to avoid cutting song too early... yea
+            inline bool paused = false;
+            inline bool isSomethingCurrentlyPlaying = false; // Pause and continue
+            inline bool firstScan = true;
+            inline int volumeLevel = 40; // Default save value
+            inline bool songChanged = false;
+        }
     inline QString systemInfoText;
     inline bool forbidOpenSearchDialog;
     inline bool isN705 = false;
@@ -244,6 +247,7 @@ namespace global {
     inline bool isN236 = false;
     inline bool isN437 = false;
     inline bool isN306 = false;
+    inline bool isN249 = false;
     inline bool isKT = false;
     inline bool runningInstanceIsReaderOnly;
     inline QString deviceID;
@@ -251,12 +255,11 @@ namespace global {
 
 // https://stackoverflow.com/questions/6080853/c-multiple-definition-error-for-global-functions-in-the-header-file/20679534#20679534
 namespace {
-    QString checkconfig_str_val;
     QString deviceUID;
     QString device;
-    QString batt_level;
+    QString batteryLevel;
     QString kernelVersion;
-    int batt_level_int;
+    int batteryLevelInt;
     int defaultEpubPageWidth;
     int defaultEpubPageHeight;
     int defaultPdfPageWidth;
@@ -303,36 +306,17 @@ namespace {
             QFile config(file);
             config.open(QIODevice::ReadOnly);
             QTextStream in (&config);
-            QString content = in.readAll();
-            config.close();
-            if(content.contains("true") == true) {
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-        else {
-            log("WARNING: File " + file + " doesn't exist, returning false", "functions");
-            return false;
-        }
-    };
-    bool checkconfig_rw(QString file) {
-        if(QFile::exists(file)) {
-            QFile config(file);
-            config.open(QIODevice::ReadWrite);
-            QTextStream in (&config);
             const QString content = in.readAll();
-            std::string contentstr = content.toStdString();
-            if(contentstr.find("true") != std::string::npos) {
+            config.close();
+            if(content.contains("true")) {
                 return true;
             }
             else {
                 return false;
             }
-            config.close();
         }
         else {
+            QString function = __func__; log(function + ": Warning: File '" + file + "' doesn't exist, returning false", "functions");
             return false;
         }
         return 0;
@@ -340,14 +324,14 @@ namespace {
     void setDefaultWorkDir() {
         QDir::setCurrent("/mnt/onboard/.adds/inkbox");
     }
-    int brightness_checkconfig(QString file) {
+    int brightnessCheckconfig(QString file) {
         if(QFile::exists(file)) {
             QFile config(file);
             config.open(QIODevice::ReadWrite);
             QTextStream in (&config);
             const QString content = in.readAll();
-            int content_int = content.toInt();
-            return content_int;
+            int contentInt = content.toInt();
+            return contentInt;
             config.close();
         }
         else {
@@ -355,41 +339,36 @@ namespace {
         }
         return 0;
     }
-    void set_brightness(int value) {
-        if(QFile::exists("/var/run/brightness")) {
-            std::ofstream fhandler;
-            fhandler.open("/var/run/brightness");
-            fhandler << value;
-            fhandler.close();
+    void setBrightness(int value) {
+        if(global::deviceID == "n249\n") {
+            if(QFile::exists("/var/run/brightness_write")) {
+                std::ofstream fhandler;
+                fhandler.open("/var/run/brightness_write");
+                fhandler << value;
+                fhandler.close();
+            }
+        }
+        else {
+            if(QFile::exists("/var/run/brightness")) {
+                std::ofstream fhandler;
+                fhandler.open("/var/run/brightness");
+                fhandler << value;
+                fhandler.close();
+            }
         }
     }
-    void set_brightness_ntxio(int value) {
+    void setBrightness_ntxio(int value) {
         // Thanks to Kevin Short for this (GloLight)
         int light;
         if((light = open("/dev/ntx_io", O_RDWR)) == -1) {
-                fprintf(stderr, "Error opening ntx_io device\n");
+            fprintf(stderr, "Error opening ntx_io device\n");
         }
         ioctl(light, 241, value);
         close(light);
     }
-    int int_checkconfig(QString file) {
-        if(QFile::exists(file)) {
-            QFile int_config(file);
-            int_config.open(QIODevice::ReadOnly);
-            QString valuestr = int_config.readAll();
-            int value = valuestr.toInt();
-            int_config.close();
-            return value;
-        }
-        else {
-            return EXIT_FAILURE;
-        }
-        return 0;
-    }
-    int display_quote() {
+    int displayQuote() {
         int quoteNumber = QRandomGenerator::global()->bounded(1, 6);
         return quoteNumber;
-        return 0;
     }
     bool writeFile(QString filename, QString content) {
         QFile file(filename);
@@ -401,38 +380,6 @@ namespace {
         else {
             QString function = __func__; log(function + ": Failed to write string '" + content + "' to file '" + filename + "'", "functions");
             return false;
-        }
-    }
-    void string_writeconfig(std::string file, std::string config_option) {
-        std::ofstream fhandler;
-        fhandler.open(file);
-        fhandler << config_option;
-        fhandler.close();
-    }
-    void string_checkconfig(QString file) {
-        if(QFile::exists(file)) {
-            checkconfig_str_val = "";
-            QFile config(file);
-            config.open(QIODevice::ReadWrite);
-            QTextStream in (&config);
-            checkconfig_str_val = in.readAll();
-            config.close();
-        }
-        else {
-            checkconfig_str_val = "";
-        }
-    }
-    void string_checkconfig_ro(QString file) {
-        if(QFile::exists(file)) {
-            checkconfig_str_val = "";
-            QFile config(file);
-            config.open(QIODevice::ReadOnly);
-            QTextStream in (&config);
-            checkconfig_str_val = in.readAll();
-            config.close();
-        }
-        else {
-            checkconfig_str_val = "";
         }
     }
     QString readFile(QString file) {
@@ -447,27 +394,27 @@ namespace {
             return NULL;
         }
     }
-    void brightness_writeconfig(int value) {
+    void brightnessWriteconfig(int value) {
         std::ofstream fhandler;
         fhandler.open(".config/03-brightness/config");
         fhandler << value;
         fhandler.close();
     }
-    void warmth_writeconfig(int value) {
+    void warmthWriteconfig(int value) {
         std::ofstream fhandler;
         fhandler.open(".config/03-brightness/config-warmth");
         fhandler << value;
         fhandler.close();
     }
-    int get_brightness() {
+    int getBrightness() {
         if(global::deviceID == "n613\n") {
-            string_checkconfig_ro(".config/03-brightness/config");
+            QString brightnessConfig = readFile(".config/03-brightness/config");
             int brightness;
-            if(checkconfig_str_val == "") {
+            if(brightnessConfig.isEmpty()) {
                 brightness = 0;
             }
             else {
-                brightness = checkconfig_str_val.toInt();
+                brightness = brightnessConfig.toInt();
             }
             return brightness;
         }
@@ -486,32 +433,37 @@ namespace {
         }
         return 0;
     }
-    void get_battery_level() {
-        QString batteryLevelFileQstr;
+    void getBatteryLevel() {
+        batteryLevelInt = 100;
+        batteryLevel = "100%";
         if(global::deviceID == "kt\n") {
-            QFile batt_level_file("/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity");
-            if(batt_level_file.exists()) {
-                batt_level_file.open(QIODevice::ReadOnly);
-                batt_level = batt_level_file.readAll();
-                batt_level = batt_level.trimmed();
-                batt_level_int = batt_level.toInt();
-                batt_level = batt_level.append("%");
-                batt_level_file.close();
+            if(QFile::exists("/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity")) {
+                batteryLevel = readFile("/sys/devices/system/yoshi_battery/yoshi_battery0/battery_capacity").trimmed();
+                batteryLevelInt = batteryLevel.toInt();
+                batteryLevel.append("%");
+            }
+        }
+        else if(global::deviceID == "n249\n") {
+            if(QFile::exists("/sys/class/power_supply/rn5t618-battery/capacity")) {
+                batteryLevel = readFile("/sys/class/power_supply/rn5t618-battery/capacity").trimmed();
+                batteryLevelInt = batteryLevel.toInt();
+                batteryLevel.append("%");
             }
         }
         else {
-            QFile batt_level_file("/sys/devices/platform/pmic_battery.1/power_supply/mc13892_bat/capacity");
-            if(batt_level_file.exists()) {
-                batt_level_file.open(QIODevice::ReadOnly);
-                batt_level = batt_level_file.readAll();
-                batt_level = batt_level.trimmed();
-                batt_level_int = batt_level.toInt();
-                batt_level = batt_level.append("%");
-                batt_level_file.close();
+            if(QFile::exists("/sys/devices/platform/pmic_battery.1/power_supply/mc13892_bat/capacity")) {
+                batteryLevel = readFile("/sys/devices/platform/pmic_battery.1/power_supply/mc13892_bat/capacity").trimmed();
+                batteryLevelInt = batteryLevel.toInt();
+                batteryLevel.append("%");
             }
             else {
-                batt_level_int = 100;
-                batt_level = "100%";
+                // It's for the Nia model C - but it's also a more regular/default path, so make it the fallback
+                QString path = "/sys/class/power_supply/battery/capacity";
+                if(QFile::exists(path)) {
+                    batteryLevel = readFile(path).trimmed();
+                    batteryLevelInt = batteryLevel.toInt();
+                    batteryLevel.append("%");
+                }
             }
         }
     }
@@ -527,6 +479,7 @@ namespace {
         QTextStream in (&config);
         const QString content = in.readAll();
         std::string contentstr = content.toStdString();
+        config.close();
 
         // Thanks to https://stackoverflow.com/questions/22516463/how-do-i-find-a-complete-word-not-part-of-it-in-a-string-in-c
         std::regex r("\\b" + pattern + "\\b");
@@ -538,13 +491,12 @@ namespace {
         else {
             return false;
         }
-        config.close();
         return 0;
     };
     bool isBatteryLow() {
         // Checks if battery level is under 15% of total capacity.
-        get_battery_level();
-        if(batt_level_int <= 15) {
+        getBatteryLevel();
+        if(batteryLevelInt <= 15) {
             return true;
         }
         else {
@@ -554,8 +506,8 @@ namespace {
     }
     bool isBatteryCritical() {
         // Checks if the battery level is critical (i.e. <= 5%)
-        get_battery_level();
-        if(batt_level_int <= 5) {
+        getBatteryLevel();
+        if(batteryLevelInt <= 5) {
             QString function = __func__; log(function + ": Battery is at a critical charge level!", "functions");
             return true;
         }
@@ -566,10 +518,10 @@ namespace {
     }
     void zeroBrightness() {
         if(global::deviceID != "n613\n") {
-            set_brightness(0);
+            setBrightness(0);
         }
         else {
-            set_brightness_ntxio(0);
+            setBrightness_ntxio(0);
         }
     }
     void poweroff(bool splash) {
@@ -647,25 +599,23 @@ namespace {
         proc->deleteLater();
 
         setDefaultWorkDir();
-        string_writeconfig("/external_root/run/initrd-fifo", "get_kernel_build_id\n");
+        writeFile("/external_root/run/initrd-fifo", "get_kernel_build_id\n");
         QThread::msleep(100);
-        string_writeconfig("/external_root/run/initrd-fifo", "get_kernel_commit\n");
+        writeFile("/external_root/run/initrd-fifo", "get_kernel_commit\n");
         QThread::msleep(100);
 
-        string_checkconfig_ro("/external_root/run/kernel_build_id");
-        QString kernelBuildID = checkconfig_str_val.trimmed();
+        QString kernelBuildID = readFile("/external_root/run/kernel_build_id").trimmed();
         kernelVersion.append(", build ");
         kernelVersion.append(kernelBuildID);
 
-        string_checkconfig_ro("/external_root/run/kernel_commit");
-        QString kernelCommit = checkconfig_str_val.trimmed();
+        QString kernelCommit = readFile("/external_root/run/kernel_commit").trimmed();
         kernelVersion.append(", commit ");
         kernelVersion.append(kernelCommit);
     }
     QString getConnectionInformation() {
         QString getIpProg ("sh");
         QStringList getIpArgs;
-        if(global::deviceID != "n437\n") {
+        if(global::deviceID != "n437\n" and global::deviceID != "n249\n") {
             getIpArgs << "-c" << "/sbin/ifconfig eth0 | grep 'inet addr' | cut -d: -f2 | awk '{print $1}'";
         }
         else {
@@ -687,10 +637,9 @@ namespace {
         getUID();
         getKernelVersion();
         global::systemInfoText = "<b>InkBox OS version ";
-        string_checkconfig_ro("/external_root/opt/isa/version");
-        global::systemInfoText.append(checkconfig_str_val);
-        global::systemInfoText.append("</b><br>Copyright <font face='Inter'>©</font> 2021-2022 Nicolas Mailloux and contributors");
-        global::systemInfoText.append("<br><b>Git:</b> ");
+        global::systemInfoText.append(readFile("/external_root/opt/isa/version"));
+        global::systemInfoText.append("</b><br>Copyright <font face='Inter'>©</font> 2021-2023 Nicolas Mailloux and contributors<br>Special thanks to: Szybet, NiLuJe, akemnade, Rain92 (GitHub)");
+        global::systemInfoText.append("<br><b>GUI Git commit:</b> ");
         global::systemInfoText.append(GIT_VERSION);
         global::systemInfoText.append("<br><b>Device UID:</b> ");
         global::systemInfoText.append(deviceUID);
@@ -737,7 +686,7 @@ namespace {
                 defaultEpubPageHeight = 425;
                 defaultEpubPageWidth = 425;
             }
-            else if(global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "emu\n") {
+            else if(global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "n249\n" or global::deviceID == "emu\n") {
                 defaultEpubPageHeight = 450;
                 defaultEpubPageWidth = 450;
             }
@@ -770,7 +719,7 @@ namespace {
                     defaultPdfPageWidth = 974;
                 }
             }
-            else if(global::deviceID == "n437\n") {
+            else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
                 if(global::reader::pdfOrientation == 0) {
                     defaultPdfPageHeight = 1398;
                     defaultPdfPageWidth = 1022;
@@ -795,15 +744,15 @@ namespace {
             log(function + "Defined default PDF page width to " + QString::number(defaultPdfPageWidth), "functions");
         }
     }
-    void pre_set_brightness(int brightnessValue) {
-        if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n873\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n") {
-            set_brightness(brightnessValue);
+    void preSetBrightness(int brightnessValue) {
+        if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n873\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "n249\n" or global::deviceID == "kt\n") {
+            setBrightness(brightnessValue);
         }
         else if(global::deviceID == "n613\n") {
-            set_brightness_ntxio(brightnessValue);
+            setBrightness_ntxio(brightnessValue);
         }
         else {
-            set_brightness(brightnessValue);
+            setBrightness(brightnessValue);
         }
     }
     void cinematicBrightness(int value, int mode) {
@@ -819,61 +768,89 @@ namespace {
             int brightness = 0;
             while(brightness != value) {
                 brightness = brightness + 1;
-                pre_set_brightness(brightness);
+                preSetBrightness(brightness);
                 QThread::msleep(30);
             }
         }
         else if(mode == 1) {
-            int brightness = get_brightness();
+            int brightness = getBrightness();
             while(brightness != 0) {
                 brightness = brightness - 1;
-                pre_set_brightness(brightness);
+                preSetBrightness(brightness);
                 QThread::msleep(30);
             }
         }
         else if(mode == 2) {
-            int brightness = get_brightness();
+            int brightness = getBrightness();
             if(brightness <= value) {
                 while(brightness != value) {
                     brightness = brightness + 1;
-                    pre_set_brightness(brightness);
+                    preSetBrightness(brightness);
                     QThread::msleep(30);
                 }
             }
             else if(brightness >= value) {
                 while(brightness != value) {
                     brightness = brightness - 1;
-                    pre_set_brightness(brightness);
+                    preSetBrightness(brightness);
                     QThread::msleep(30);
                 }
             }
         }
     }
-    int get_warmth() {
+    int getWarmth() {
         QString sysfsWarmthPath;
+        int warmthValue;
         if(global::deviceID == "n873\n") {
             sysfsWarmthPath = "/sys/class/backlight/lm3630a_led/color";
         }
-        string_checkconfig_ro(sysfsWarmthPath);
-        int warmthValue = checkconfig_str_val.toInt();
-        warmthValue = 10 - warmthValue;
+        else if(global::deviceID == "n249\n") {
+            sysfsWarmthPath = "/sys/class/backlight/backlight_warm/actual_brightness";
+        }
+        QString warmthConfig = readFile(sysfsWarmthPath);
+        warmthValue = warmthConfig.toInt();
+        if (global::deviceID == "n873\n") {
+            warmthValue = 10 - warmthValue;
+        }
         return warmthValue;
     }
-    void set_warmth(int warmthValue) {
-        // Value 0 gives a warmer lighting than value 10
-        warmthValue = 10 - warmthValue;
-        std::string warmthValueStr = std::to_string(warmthValue);
-        std::string sysfsWarmthPath;
+    void setWarmth(int warmthValue) {
+        QString sysfsWarmthPath;
+        QString warmthValueStr;
         if(global::deviceID == "n873\n") {
+            // Value 0 gives a warmer lighting than value 10
+            warmthValue = 10 - warmthValue;
+            warmthValueStr = QString::number(warmthValue);
             sysfsWarmthPath = "/sys/class/backlight/lm3630a_led/color";
         }
-        string_writeconfig(sysfsWarmthPath, warmthValueStr);
+        else if(global::deviceID == "n249\n") {
+            warmthValueStr = QString::number(warmthValue);
+            sysfsWarmthPath = "/sys/class/backlight/backlight_warm/brightness";
+        }
+        writeFile(sysfsWarmthPath, warmthValueStr);
+    }
+    void cinematicWarmth(int warmthValue) {
+        int currentWarmth = getWarmth();
+        if(warmthValue < currentWarmth) {
+            while(warmthValue < currentWarmth) {
+                currentWarmth--;
+                setWarmth(currentWarmth);
+                QThread::msleep(30);
+            }
+        }
+        else if(warmthValue > currentWarmth) {
+            while(warmthValue > currentWarmth) {
+                currentWarmth++;
+                setWarmth(currentWarmth);
+                QThread::msleep(30);
+            }
+        }
     }
     void installUpdate() {
         log("Installing update package", "functions");
         writeFile("/mnt/onboard/onboard/.inkbox/can_really_update", "true\n");
         writeFile("/external_root/opt/update/will_update", "true\n");
-	writeFile("/external_root/boot/flags/WILL_UPDATE", "true\n");
+	    writeFile("/external_root/boot/flags/WILL_UPDATE", "true\n");
         reboot(true);
     }
     bool getEncFSStatus() {
@@ -882,6 +859,14 @@ namespace {
     bool isUsbPluggedIn() {
         if(global::deviceID == "kt\n") {
             if(readFile("/sys/devices/system/yoshi_battery/yoshi_battery0/battery_status") == "1\n") {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        }
+        else if(global::deviceID == "n249\n") {
+            if(readFile("/sys/class/power_supply/rn5t618-battery/status") != "Discharging\n") {
                 return 1;
             }
             else {
@@ -1136,7 +1121,7 @@ namespace {
         else if(global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n306\n" or global::deviceID == "emu\n") {
             return 2.6;
         }
-        else if(global::deviceID == "n437\n" or global::deviceID == "n873\n") {
+        else if(global::deviceID == "n437\n" or global::deviceID == "n249\n" or global::deviceID == "n873\n") {
             return 3;
         }
         else {
@@ -1144,34 +1129,33 @@ namespace {
         }
     }
     global::wifi::wifiState checkWifiState() {
-        QProcess *wifiStateProcess = new QProcess();
-        QString path = "/external_root/usr/local/bin/wifi/wifi_status.sh";
-        QStringList args;
-        wifiStateProcess->start(path, args);
-        wifiStateProcess->waitForFinished();
-        wifiStateProcess->deleteLater();
-
-        QString currentWifiState;
-        if(QFile("/run/wifi_status").exists() == true) {
-            currentWifiState = readFile("/run/wifi_status");
-        } else {
-            log("/run/wifi_status doesn't exist", "functions");
+        QString interfaceName;
+        if(global::deviceID == "n437\n" or global::deviceID == "n249\n" or global::deviceID == "kt\n") {
+            interfaceName = "wlan0";
         }
-        if (currentWifiState.contains("configured") == true) {
+        else {
+            interfaceName = "eth0";
+        }
+
+        // Check if network interface has an IP address
+        QNetworkInterface iface = QNetworkInterface::interfaceFromName(interfaceName);
+        QList<QNetworkAddressEntry> entries = iface.addressEntries();
+        if(!entries.isEmpty()) {
+            // Interface is up and has an IP address
             global::wifi::isConnected = true;
             return global::wifi::wifiState::configured;
         }
-        else if (currentWifiState.contains("enabled") == true) {
-            global::wifi::isConnected = false;
-            return global::wifi::wifiState::enabled;
-        }
-        else if (currentWifiState.contains("disabled") == true) {
-            global::wifi::isConnected = false;
-            return global::wifi::wifiState::disabled;
-        } else {
-            global::wifi::isConnected = false;
-            QString function = __func__; log(function + ": Critical error", "functions");
-            return global::wifi::wifiState::unknown;
+        else {
+            if(QFile::exists("/sys/class/net/" + interfaceName + "/operstate")) {
+                // Interface is up but doesn't have an IP address
+                global::wifi::isConnected = false;
+                return global::wifi::wifiState::enabled;
+            }
+            else {
+                // Interface is not up
+                global::wifi::isConnected = false;
+                return global::wifi::wifiState::disabled;
+            }
         }
     }
     int testPing() {
@@ -1214,26 +1198,6 @@ namespace {
         // This can cause problems if someone names their directory with HTML tags, so stop here. Anki, which is a big project, also doesn't care about this
         return text.remove(QRegExp("<[^>]*>"));
     }
-    // Some audio wrappers
-    void waitForAudioThread() {
-        bool tempBool = false;
-        while(tempBool == false) {
-          QThread::msleep(50);
-          global::audio::audioMutex.lock();
-          if(global::audio::actionDone == true) {
-              global::audio::actionDone = false;
-              tempBool = true;
-          }
-          global::audio::audioMutex.unlock();
-        }
-    }
-    void AudioThreadAction(global::audio::Action actionToPerform) {
-        global::audio::audioMutex.lock();
-        global::audio::currentAction = actionToPerform;
-        global::audio::audioMutex.unlock();
-        waitForAudioThread();
-    }
-    // I'm sick of poor code - use this for configs
     void bool_writeconfig(QString file, bool option) {
         QString str;
         if(option == true) {
@@ -1246,30 +1210,6 @@ namespace {
         fhandler.open(file.toStdString());
         fhandler << str.toStdString();
         fhandler.close();
-    }
-    namespace mutex {
-        bool boolCheck(bool& theBool, QMutex& theMutex) {
-            bool returnBool;
-            theMutex.lock();
-            returnBool = theBool;
-            theMutex.unlock();
-            return returnBool;
-        }
-        void intPlus(int& theInt, QMutex& theMutex) {
-            theMutex.lock();
-            theInt++;
-            theMutex.unlock();
-        }
-        void intMinus(int& theInt, QMutex& theMutex) {
-            theMutex.lock();
-            theInt--;
-            theMutex.unlock();
-        }
-        void boolSet(bool& theBool, QMutex& theMutex, bool toSet) {
-            theMutex.lock();
-            theBool = toSet;
-            theMutex.unlock();
-        }
     }
 }
 

@@ -7,6 +7,13 @@ audiofile::audiofile(QWidget *parent) :
     ui(new Ui::audiofile)
 {
     ui->setupUi(this);
+    audiofile::setFont(QFont("u001"));
+    ui->nameLabel->setFont(QFont("u001"));
+    ui->timeLabel->setFont(QFont("u001"));
+
+    ui->addBtn->setProperty("type", "borderless");
+
+    ui->nameLabel->setWordWrap(true);
 }
 
 audiofile::~audiofile()
@@ -16,11 +23,7 @@ audiofile::~audiofile()
 
 void audiofile::provideData(global::audio::musicFile fileProvided) {
     file = fileProvided;
-    QString name = file.name;
-    if(name > 30) {
-        name.chop(name.length() - 30);
-    }
-    ui->nameLabel->setText(name);
+    ui->nameLabel->setText(file.name);
     ui->timeLabel->setText(file.length);
 }
 
@@ -31,11 +34,28 @@ void audiofile::die() {
 
 void audiofile::on_addBtn_clicked()
 {
-    log("Adding item to queue", className);
+    ui->addBtn->setDisabled(true);
+    ui->addBtn->setStyleSheet("background: black;");
+
+    log("Adding item (audio file) to queue", className);
+    global::audio::audioMutex.lock();
     global::audio::queue.append(file);
     if(global::audio::isSomethingCurrentlyPlaying == false) {
-        log("And also playing it because nothing else is playing");
+        log("Starting playback because nothing else is currently playing", className);
         global::audio::isSomethingCurrentlyPlaying = true;
-        emit playFileChild(global::audio::queue.length() - 1);
+        int tmpInt = global::audio::queue.length() - 1;
+        global::audio::audioMutex.unlock();
+        QTimer::singleShot(700, this, SLOT(enableButton()));
+        emit playFileChild(tmpInt);
+        return void();
     }
+    global::audio::audioMutex.unlock();
+    QTimer::singleShot(700, this, SLOT(enableButton()));
+}
+
+void audiofile::enableButton() {
+    log("Enabling 'Back' button", className);
+    ui->addBtn->setEnabled(true);
+    ui->addBtn->setStyleSheet("background: white;");
+    ui->addBtn->repaint();
 }

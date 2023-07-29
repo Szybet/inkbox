@@ -61,7 +61,6 @@ reader::reader(QWidget *parent) :
     global::reader::currentViewportText = "";
 
     ui->setupUi(this);
-    ui->brightnessStatus->setFont(QFont("u001"));
     ui->fontLabel->setFont(QFont("u001"));
     ui->sizeLabel->setFont(QFont("u001"));
     ui->sizeValueLabel->setFont(QFont("Inter"));
@@ -77,10 +76,8 @@ reader::reader(QWidget *parent) :
     ui->previousBtn->setProperty("type", "borderless");
     ui->nextBtn->setProperty("type", "borderless");
     ui->optionsBtn->setProperty("type", "borderless");
-    ui->brightnessDecBtn->setProperty("type", "borderless");
-    ui->brightnessIncBtn->setProperty("type", "borderless");
     ui->homeBtn->setProperty("type", "borderless");
-    ui->aboutBtn->setProperty("type", "borderless");
+    ui->brightnessBtn->setProperty("type", "borderless");
     ui->alignLeftBtn->setProperty("type", "borderless");
     ui->alignRightBtn->setProperty("type", "borderless");
     ui->alignCenterBtn->setProperty("type", "borderless");
@@ -115,14 +112,10 @@ reader::reader(QWidget *parent) :
     ui->previousDefinitionBtn->setIcon(QIcon(":/resources/chevron-left.png"));
     ui->nextDefinitionBtn->setText("");
     ui->nextDefinitionBtn->setIcon(QIcon(":/resources/chevron-right.png"));
-    ui->brightnessDecBtn->setText("");
-    ui->brightnessDecBtn->setIcon(QIcon(":/resources/minus.png"));
-    ui->brightnessIncBtn->setText("");
-    ui->brightnessIncBtn->setIcon(QIcon(":/resources/plus.png"));
     ui->homeBtn->setText("");
     ui->homeBtn->setIcon(QIcon(":/resources/home.png"));
-    ui->aboutBtn->setText("");
-    ui->aboutBtn->setIcon(QIcon(":/resources/info.png"));
+    ui->brightnessBtn->setText("");
+    ui->brightnessBtn->setIcon(QIcon(":/resources/frontlight.png"));
     ui->searchBtn->setText("");
     ui->searchBtn->setIcon(QIcon(":/resources/search.png"));
     ui->increaseScaleBtn->setText("");
@@ -195,7 +188,7 @@ reader::reader(QWidget *parent) :
         if(checkconfig("/tmp/suspendBook") == true) {
             wakeFromSleep = true;
             // Prevent from opening the Reader framework next time unless the condition is reset
-            string_writeconfig("/tmp/suspendBook", "false");
+            writeFile("/tmp/suspendBook", "false");
             book_file = "/inkbox/book/book.txt";
         }
         else if(global::reader::bookFile.isEmpty() == false) {
@@ -265,15 +258,14 @@ reader::reader(QWidget *parent) :
     log("Opening file '" + book_file + "'", className);
 
     // Writing book path to file
-    std::string book_file_str = book_file.toStdString();
-    string_writeconfig("/tmp/inkboxBookPath", book_file_str);
+    writeFile("/tmp/inkboxBookPath", book_file);
 
     // ITS LITTERALLY MOUNT --BIND THE SHA DIR ~Szybet, note for future
     // Calling InkBox daemon (ibxd) via FIFO interface to run bookconfig_mount
     if(!book_file.isEmpty()) {
         if(checkconfig(".config/16-global_reading_settings/config") == false) {
             global::reader::globalReadingSettings = false;
-            string_writeconfig("/opt/ibxd", "bookconfig_mount\n");
+            writeFile("/opt/ibxd", "bookconfig_mount\n");
             // Callback handler to wait until bookconfig_mount has finished execution
             while(true) {
                 // Fun fact, this while loop caused 100% cpu usage without the delay ~Szybet
@@ -292,13 +284,7 @@ reader::reader(QWidget *parent) :
 
     // Custom settings
     // Brightness
-    if(global::reader::globalReadingSettings == false) {
-        if(global::deviceID != "n705\n" and global::deviceID != "n905\n" and global::deviceID != "kt\n") {
-            int brightness_value = brightness_checkconfig(".config/03-brightness/config");
-            log("Local Reading Settings: Setting brightness to " + QString::number(brightness_value), className);
-            cinematicBrightness(brightness_value, 2);
-        }
-    }
+    QTimer::singleShot(0, this, SLOT(setCinematicBrightnessWarmthSlot()));
     // Font
     global::reader::font = readFile(".config/04-book/font");
     if(global::reader::font == "u001") {
@@ -311,14 +297,14 @@ reader::reader(QWidget *parent) :
     if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n") {
         if(checkconfig(".config/10-dark_mode/config") == true) {
             log("Setting night mode to ON", className);
-            string_writeconfig("/tmp/invertScreen", "y");
+            writeFile("/tmp/invertScreen", "y");
             ui->nightModeBtn->setText("");
             ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-full.png"));
             isNightModeActive = true;
         }
         else {
             log("Setting night mode to OFF", className);
-            string_writeconfig("/tmp/invertScreen", "n");
+            writeFile("/tmp/invertScreen", "n");
             ui->nightModeBtn->setText("");
             ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-empty.png"));
             isNightModeActive = false;
@@ -337,7 +323,7 @@ reader::reader(QWidget *parent) :
         ui->previousBtn->setStyleSheet("padding: 13.5px");
         ui->optionsBtn->setStyleSheet("padding: 13.5px");
     }
-    else if(global::deviceID == "n437\n") {
+    else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
         ui->nextBtn->setStyleSheet("padding: 12.5px");
         ui->previousBtn->setStyleSheet("padding: 12.5px");
         ui->optionsBtn->setStyleSheet("padding: 12.5px");
@@ -351,15 +337,24 @@ reader::reader(QWidget *parent) :
     ui->lineSpacingValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
     ui->marginsValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
     ui->homeBtn->setStyleSheet("font-size: 9pt; padding: 5px");
-    ui->aboutBtn->setStyleSheet("font-size: 9pt; padding: 5px");
+    ui->brightnessBtn->setStyleSheet("font-size: 9pt; padding: 5px");
     ui->fontChooser->setStyleSheet("font-size: 9pt");
     ui->gotoBtn->setStyleSheet("font-size: 9pt; padding: 9px; font-weight: bold; background: lightGrey");
     ui->pageNumberLabel->setFont(QFont("Source Serif Pro"));
     ui->viewHighlightsBtn->setStyleSheet("padding: 9px");
 
-    // Hiding the menubar + definition widget + brightness widget + buttons bar widget
+    // Hiding the menubar + definition widget + brightness button + buttons bar widget
     ui->menuWidget->setVisible(false);
-    ui->brightnessWidget->setVisible(false);
+    if(!(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "kt\n")) {
+        ui->brightnessBtn->setVisible(true);
+        ui->line_15->setVisible(true);
+    }
+    else {
+        ui->brightnessBtn->setVisible(false);
+        ui->brightnessBtn->deleteLater();
+        ui->line_15->setVisible(false);
+        ui->line_15->deleteLater();
+    }
     ui->menuBarWidget->setVisible(false);
     ui->buttonsBarWidget->setVisible(false);
     ui->pdfScaleWidget->setVisible(false);
@@ -382,20 +377,6 @@ reader::reader(QWidget *parent) :
     showTopbarWidget = true;
     ui->bookInfoLabel->setFont(crimson);
 
-    // Getting brightness level
-    int brightness_value;
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        brightness_value = get_brightness();
-    }
-    else if(global::isN613 == true) {
-        setDefaultWorkDir();
-        brightness_value = brightness_checkconfig(".config/03-brightness/config");
-    }
-    else {
-        brightness_value = get_brightness();
-    }
-    ui->brightnessStatus->setValue(brightness_value);
-
     // Defining pixmaps
     // Getting the screen's size
     float sW = QGuiApplication::screens()[0]->size().width();
@@ -404,7 +385,7 @@ reader::reader(QWidget *parent) :
     if(checkconfig("/opt/inkbox_genuine") == true) {
         float stdIconWidth;
         float stdIconHeight;
-        if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
+        if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "n249\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
             stdIconWidth = sW / 16;
             stdIconHeight = sW / 16;
         }
@@ -425,35 +406,29 @@ reader::reader(QWidget *parent) :
         float stdIconWidth = sW / 19;
         float stdIconHeight = sH / 19;
         QPixmap chargingPixmap(":/resources/battery_charging.png");
-        scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         QPixmap fullPixmap(":/resources/battery_full.png");
-        scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         QPixmap halfPixmap(":/resources/battery_half.png");
-        scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         QPixmap emptyPixmap(":/resources/battery_empty.png");
-        scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
     }
 
     // Checking if there is a page refresh setting set
-    string_checkconfig(".config/04-book/refresh");
-    if(checkconfig_str_val == "") {
+    if(readFile(".config/04-book/refresh").isEmpty()) {
         // Writing the default, refresh every 3 pages
-        string_writeconfig(".config/04-book/refresh", "3");
-        string_checkconfig(".config/04-book/refresh");
+        writeFile(".config/04-book/refresh", "3");
     }
-    else {
-        // A config option was set, continuing after the Else statement...
-        ;
-    }
-    pageRefreshSetting = checkconfig_str_val.toInt();
+    pageRefreshSetting = readFile(".config/04-book/refresh").toInt();
     // Checking if that config option was set to "Never refresh"...
     if(pageRefreshSetting == -1) {
         log("Setting page refresh to 'disabled'", className);
         neverRefresh = true;
     }
     else {
+        log("Setting page refresh to each " + QString::number(pageRefreshSetting) + " pages", className);
         // Safety measure
-        log("Setting page refresh to each " + checkconfig_str_val + " pages", className);
         neverRefresh = false;
     }
 
@@ -463,8 +438,8 @@ reader::reader(QWidget *parent) :
         t->setInterval(500);
         connect(t, &QTimer::timeout, [&]() {
            QString time = QTime::currentTime().toString("hh:mm:ss");
-           get_battery_level();
-           ui->batteryLabel->setText(batt_level);
+           getBatteryLevel();
+           ui->batteryLabel->setText(batteryLevel);
            ui->timeLabel->setText(time);
         } );
         t->start();
@@ -474,8 +449,8 @@ reader::reader(QWidget *parent) :
         t->setInterval(500);
         connect(t, &QTimer::timeout, [&]() {
            QString time = QTime::currentTime().toString("hh:mm");
-           get_battery_level();
-           ui->batteryLabel->setText(batt_level);
+           getBatteryLevel();
+           ui->batteryLabel->setText(batteryLevel);
            ui->timeLabel->setText(time);
         } );
         t->start();
@@ -484,7 +459,7 @@ reader::reader(QWidget *parent) :
     // Checking if we're waking from sleep and have lockscreen enabled; if so, do nothing there because the book should already have been parsed
     if(wakeFromSleep != true) {
         // Remount tmpfs
-        string_writeconfig("/inkbox/remount", "true");
+        writeFile("/inkbox/remount", "true");
 
         // Counting number of parsed files
         split_total = setup_book(book_file, 0, true);
@@ -495,8 +470,7 @@ reader::reader(QWidget *parent) :
     }
     else {
         // Retrieve split_total from tmpfs
-        string_checkconfig("/tmp/inkboxPageNumber");
-        split_total = checkconfig_str_val.toInt();
+        split_total = readFile("/tmp/inkboxPageNumber").toInt();
         setup_book(book_file, 0, true);
     }
 
@@ -504,9 +478,9 @@ reader::reader(QWidget *parent) :
     if(is_epub == false && is_pdf == false && is_image == false) {
         setDefaultWorkDir();
         if(global::reader::globalReadingSettings == false) {
-            string_checkconfig_ro(".config/A-page_number/config");
-            if(checkconfig_str_val != "") {
-                split_total = checkconfig_str_val.toInt();
+            QString splitTotalPageNumber = readFile(".config/A-page_number/config");
+            if(!splitTotalPageNumber.isEmpty()) {
+                split_total = splitTotalPageNumber.toInt();
             }
         }
         setup_book(book_file, split_total, true);
@@ -603,7 +577,7 @@ reader::reader(QWidget *parent) :
         if(global::deviceID == "n705\n") {
             infoLabelDefinedLength = 35;
         }
-        else if(global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
+        else if(global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "n249\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
             infoLabelDefinedLength = 50;
         }
         else {
@@ -621,8 +595,7 @@ reader::reader(QWidget *parent) :
     else {
         QString bookReadRelativePath;
         if(wakeFromSleep == true) {
-            string_checkconfig_ro("/tmp/inkboxBookPath");
-            bookReadRelativePath = checkconfig_str_val.split("/").last();
+            bookReadRelativePath = readFile("/tmp/inkboxBookPath").split("/").last();
         }
         else {
             bookReadRelativePath = book_file.split("/").last();
@@ -632,7 +605,7 @@ reader::reader(QWidget *parent) :
         if(global::deviceID == "n705\n") {
             infoLabelDefinedLength = 35;
         }
-        else if(global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
+        else if(global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "n249\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
             infoLabelDefinedLength = 50;
         }
         else {
@@ -649,10 +622,10 @@ reader::reader(QWidget *parent) :
     }
 
     // Clean up
-    string_writeconfig("/inkbox/remount", "true");
+    writeFile("/inkbox/remount", "true");
 
     // Way to tell shell scripts that we're in the Reader framework
-    string_writeconfig("/tmp/inkboxReading", "true");
+    writeFile("/tmp/inkboxReading", "true");
 
     // Maintain a 'Recent books' list
     QJsonObject recentBooksObject;
@@ -798,7 +771,7 @@ reader::~reader()
 }
 
 int reader::setup_book(QString book, int i, bool run_parser) {
-    // Parse ebook
+    // Parse eBook
     if(remount == true) {
         QString mount_prog ("sh");
         QStringList mount_args;
@@ -810,7 +783,7 @@ int reader::setup_book(QString book, int i, bool run_parser) {
         remount = false;
     }
     else {
-        string_writeconfig("/inkbox/remount", "false");
+        writeFile("/inkbox/remount", "false");
         QString mount_prog ("sh");
         QStringList mount_args;
         mount_args << "split.sh";
@@ -854,8 +827,8 @@ int reader::setup_book(QString book, int i, bool run_parser) {
             ui->line->deleteLater();
             ui->line_3->deleteLater();
 
-            string_writeconfig("/tmp/inkboxImagePath", book.toStdString());
-            string_writeconfig("/opt/ibxd", "inkbox_convert_image\n");
+            writeFile("/tmp/inkboxImagePath", book);
+            writeFile("/opt/ibxd", "inkbox_convert_image\n");
 
             while(true) {
                 if(QFile::exists("/inkbox/convertImageDone")) {
@@ -888,11 +861,10 @@ int reader::setup_book(QString book, int i, bool run_parser) {
     // Checking whether or not the user has defined an option for the number of words per page; if not, then setting the default.
     // NOTE: This is only for plain text files.
     setDefaultWorkDir();
-    string_checkconfig(".config/07-words_number/config");
-    if(checkconfig_str_val == "") {
-        string_writeconfig(".config/07-words_number/config", "100");
-        string_checkconfig(".config/07-words_number/config");
+    if(readFile(".config/07-words_number/config").isEmpty()) {
+        writeFile(".config/07-words_number/config", "100");
     }
+    QString wordsNumberConfig = readFile(".config/07-words_number/config");
 
     // Parsing file
     if(is_epub == true) {
@@ -930,7 +902,7 @@ int reader::setup_book(QString book, int i, bool run_parser) {
     else {
         QString parse_prog ("/mnt/onboard/.adds/inkbox/system/bin/split-txt");
         QStringList parse_args;
-        parse_args << checkconfig_str_val;
+        parse_args << wordsNumberConfig;
         QProcess * parse_proc = new QProcess();
         parse_proc->start(parse_prog, parse_args);
         parse_proc->waitForFinished();
@@ -982,11 +954,11 @@ bool reader::epub_file_match(QString file) {
 
     if(fileExt == "epub" or fileExt == "EPUB") {
         log("Book file format: ePUB", className);
-        string_writeconfig("/inkbox/bookIsEpub", "true");
+        writeFile("/inkbox/bookIsEpub", "true");
         return true;
     }
     else {
-        string_writeconfig("/inkbox/bookIsEpub", "false");
+        writeFile("/inkbox/bookIsEpub", "false");
         return false;
     }
 }
@@ -1191,7 +1163,7 @@ void reader::on_optionsBtn_clicked()
         if(global::deviceID == "n873\n") {
             ui->optionsBtn->setStyleSheet("background: white; color: black; padding: 13.5px");
         }
-        else if(global::deviceID == "n437\n") {
+        else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
             ui->optionsBtn->setStyleSheet("background: white; color: black; padding: 12.5px");
         }
         else {
@@ -1199,7 +1171,7 @@ void reader::on_optionsBtn_clicked()
         }
         ui->optionsBtn->setIcon(QIcon(":/resources/settings.png"));
         // The Glo HD (N437) has a newer platform plugin that doesn't need this
-        if(global::deviceID != "n437\n") {
+        if(global::deviceID != "n437\n" or global::deviceID != "n306\n" or global::deviceID != "n249\n") {
             QTimer::singleShot(500, this, SLOT(repaint()));
         }
         menubar_shown = false;
@@ -1211,7 +1183,7 @@ void reader::on_optionsBtn_clicked()
         if(global::deviceID == "n873\n") {
             ui->optionsBtn->setStyleSheet("background: black; color: white; padding: 13.5px");
         }
-        else if(global::deviceID == "n437\n") {
+        else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
             ui->optionsBtn->setStyleSheet("background: black; color: white; padding: 12.5px");
         }
         else {
@@ -1223,78 +1195,15 @@ void reader::on_optionsBtn_clicked()
     }
 }
 
-void reader::on_brightnessDecBtn_clicked()
-{
-    int bval;
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        bval = get_brightness();
-    }
-    else if(global::isN613 == true) {
-        setDefaultWorkDir();
-        bval = brightness_checkconfig(".config/03-brightness/config");
-    }
-    else {
-        bval = get_brightness();
-    }
-    int set_bval = bval - 1;
-    if(set_bval < 0) {
-        set_bval = 0;
-    }
-    pre_set_brightness(set_bval);
-    brightness_writeconfig(set_bval);
-
-    ui->brightnessStatus->setValue(set_bval);
-}
-
-void reader::on_brightnessIncBtn_clicked()
-{
-    int bval;
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        bval = get_brightness();
-    }
-    else if(global::isN613 == true) {
-        setDefaultWorkDir();
-        bval = brightness_checkconfig(".config/03-brightness/config");
-    }
-    else {
-        bval = get_brightness();
-    }
-    int set_bval = bval + 1;
-    if(set_bval > 100) {
-        set_bval = 100;
-    }
-    pre_set_brightness(set_bval);
-    brightness_writeconfig(set_bval);
-
-    ui->brightnessStatus->setValue(set_bval);
-}
-
-void reader::on_aboutBtn_clicked()
-{
-    log("Showing About message box", className);
-    if(checkconfig("/opt/inkbox_genuine") == true) {
-        QString aboutmsg = "InkBox is an open-source, Qt-based eBook reader. It aims to bring you the latest Qt features while being also fast and responsive.";
-        aboutmsg.prepend("<font face='u001'>");
-        string_checkconfig_ro("/external_root/opt/isa/version");
-        aboutmsg.append("<br><br>InkBox ");
-        aboutmsg.append(checkconfig_str_val);
-        aboutmsg.append("</font>");
-        QMessageBox::information(this, tr("Information"), aboutmsg);
-    }
-    else {
-        QMessageBox::information(this, tr("About"), tr("InkBox is an open-source Qt-based eBook reader. It aims to bring you the latest Qt features while being also fast and responsive."));
-    }
-}
-
 void reader::on_homeBtn_clicked()
 {
     log("Returning to Home screen", className);
     // We're leaving reading mode
-    string_writeconfig("/tmp/inkboxReading", "false");
+    writeFile("/tmp/inkboxReading", "false");
     // Remount tmpfs
-    string_writeconfig("/inkbox/remount", "true");
+    writeFile("/inkbox/remount", "true");
     // Specify cinematic brightness mode
-    string_writeconfig("/tmp/inkbox-cinematicBrightness_auto", "true");
+    writeFile("/tmp/inkbox-cinematicBrightness_auto", "true");
 
     // Relaunching process
     quit_restart();
@@ -1312,7 +1221,7 @@ void reader::on_alignLeftBtn_clicked()
     log("Setting text alignment to 'Left'", className);
     global::reader::textAlignment = 0;
     setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
-    string_writeconfig(".config/04-book/alignment", "Left");
+    writeFile(".config/04-book/alignment", "Left");
 }
 
 void reader::on_alignCenterBtn_clicked()
@@ -1320,7 +1229,7 @@ void reader::on_alignCenterBtn_clicked()
     log("Setting text alignment to 'Center'", className);
     global::reader::textAlignment = 1;
     setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
-    string_writeconfig(".config/04-book/alignment", "Center");
+    writeFile(".config/04-book/alignment", "Center");
 }
 
 void reader::on_alignRightBtn_clicked()
@@ -1328,7 +1237,7 @@ void reader::on_alignRightBtn_clicked()
     log("Setting text alignment to 'Right'", className);
     global::reader::textAlignment = 2;
     setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
-    string_writeconfig(".config/04-book/alignment", "Right");
+    writeFile(".config/04-book/alignment", "Right");
 }
 
 void reader::on_alignJustifyBtn_clicked()
@@ -1336,7 +1245,7 @@ void reader::on_alignJustifyBtn_clicked()
     log("Setting text alignment to 'Justify'", className);
     global::reader::textAlignment = 3;
     setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
-    string_writeconfig(".config/04-book/alignment", "Justify");
+    writeFile(".config/04-book/alignment", "Justify");
 }
 
 void reader::setTextProperties(int alignment, int lineSpacing, int margins, QString font, int fontSize) {
@@ -1499,14 +1408,14 @@ void reader::menubar_show() {
         ui->batteryIconLabel->setPixmap(scaledChargingPixmap);
     }
     else {
-        get_battery_level();
-        if(batt_level_int >= 75 && batt_level_int <= 100) {
+        getBatteryLevel();
+        if(batteryLevelInt >= 75 && batteryLevelInt <= 100) {
             ui->batteryIconLabel->setPixmap(scaledFullPixmap);
         }
-        if(batt_level_int >= 25 && batt_level_int <= 74) {
+        if(batteryLevelInt >= 25 && batteryLevelInt <= 74) {
             ui->batteryIconLabel->setPixmap(scaledHalfPixmap);
         }
-        if(batt_level_int >= 0 && batt_level_int <= 24) {
+        if(batteryLevelInt >= 0 && batteryLevelInt <= 24) {
             ui->batteryIconLabel->setPixmap(scaledEmptyPixmap);
         }
     }
@@ -1531,25 +1440,11 @@ void reader::menubar_show() {
         ui->pageWidget->setVisible(true);
     }
 
-    if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "kt\n") {
-        ;
-    }
-    else {
-        ui->brightnessWidget->setVisible(true);
-    }
-
     menubar_shown = true;
 }
 
 void reader::menubar_hide() {
     log("Hiding menu bar", className);
-    if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "kt\n") {
-        ui->brightnessWidget->setVisible(false);
-    }
-    else {
-        // Safety measure
-        ui->brightnessWidget->setVisible(false);
-    }
 
     if(is_pdf == false && is_image == false) {
         ui->menuBarWidget->setVisible(false);
@@ -1675,30 +1570,30 @@ void reader::on_sizeSlider_valueChanged(int value)
 void reader::writeconfig_pagenumber(bool persistent) {
     // Saving the page number in tmpfs and in persistent storage if requested
     if(is_epub == true) {
-        std::string epubPageNumber_str = std::to_string(mupdf::epub::epubPageNumber);
-        string_writeconfig("/tmp/inkboxPageNumber", epubPageNumber_str);
+        QString epubPageNumberStr = QString::number(mupdf::epub::epubPageNumber);
+        writeFile("/tmp/inkboxPageNumber", epubPageNumberStr);
         if(persistent == true) {
             log("Writing page number config for page '" + QString::number(mupdf::epub::epubPageNumber) + "'", className);
-            epubPageNumber_str.append("\n");
-            string_writeconfig(".config/A-page_number/config", epubPageNumber_str);
+            epubPageNumberStr.append("\n");
+            writeFile(".config/A-page_number/config", epubPageNumberStr);
         }
     }
     else if(is_pdf == true) {
-        std::string pdfPageNumber_str = std::to_string(mupdf::pdf::pdfPageNumber);
-        string_writeconfig("/tmp/inkboxPageNumber", pdfPageNumber_str);
+        QString pdfPageNumberStr = QString::number(mupdf::pdf::pdfPageNumber);
+        writeFile("/tmp/inkboxPageNumber", pdfPageNumberStr);
         if(persistent == true) {
-            log("Writing page number config for page '" + QString::number(mupdf::pdf::pdfPageNumber) + "'", className);
-            pdfPageNumber_str.append("\n");
-            string_writeconfig(".config/A-page_number/config", pdfPageNumber_str);
+            log("Writing page number config for page '" + pdfPageNumberStr + "'", className);
+            pdfPageNumberStr.append("\n");
+            writeFile(".config/A-page_number/config", pdfPageNumberStr);
         }
     }
     else {
-        std::string split_total_str = std::to_string(split_total);
-        string_writeconfig("/tmp/inkboxPageNumber", split_total_str);
+        QString splitTotalStr = QString::number(split_total);
+        writeFile("/tmp/inkboxPageNumber", splitTotalStr);
         if(persistent == true) {
-            log("Writing page number config for split total '" + QString::number(split_total) + "'", className);
-            split_total_str.append("\n");
-            string_writeconfig(".config/A-page_number/config", split_total_str);
+            log("Writing page number config for split total '" + splitTotalStr + "'", className);
+            splitTotalStr.append("\n");
+            writeFile(".config/A-page_number/config", splitTotalStr);
         }
     }
 }
@@ -1710,7 +1605,7 @@ void reader::quit_restart() {
     saveReadingSettings();
 
     // Cleaning bookconfig_mount mountpoint
-    string_writeconfig("/opt/ibxd", "bookconfig_unmount\n");
+    writeFile("/opt/ibxd", "bookconfig_unmount\n");
 
     // Restarting InkBox
     QProcess process;
@@ -1780,8 +1675,7 @@ void reader::convertMuPdfVars(int fileType, bool convertAll) {
         }
         if(global::reader::globalReadingSettings == false) {
             if(goToSavedPageDone == false) {
-                string_checkconfig_ro(".config/A-page_number/config");
-                mupdf::pdf::pdfPageNumber = checkconfig_str_val.toInt();
+                mupdf::pdf::pdfPageNumber = readFile(".config/A-page_number/config").toInt();
                 goToSavedPageDone = true;
             }
         }
@@ -1808,29 +1702,19 @@ void reader::setPageStyle(int fileType) {
         // General page size
         defineDefaultPageSize(0);
 
-        string_checkconfig_ro(".config/13-epub_page_size/width");
-        if(checkconfig_str_val != "") {
-            ;
+        if(readFile(".config/13-epub_page_size/width").isEmpty()) {
+            QString pageWidth = QString::number(defaultEpubPageWidth);
+            writeFile(".config/13-epub_page_size/width", pageWidth);
+            writeFile(".config/13-epub_page_size/set", "true");
         }
-        else {
-            std::string pageWidth = std::to_string(defaultEpubPageWidth);
-            string_writeconfig(".config/13-epub_page_size/width", pageWidth);
-            string_writeconfig(".config/13-epub_page_size/set", "true");
-            string_checkconfig_ro(".config/13-epub_page_size/width");
-        }
-        mupdf::epub::width = checkconfig_str_val.toInt();
+        mupdf::epub::width = readFile(".config/13-epub_page_size/width").toInt();
 
-        string_checkconfig_ro(".config/13-epub_page_size/height");
-        if(checkconfig_str_val != "") {
-            ;
+        if(readFile(".config/13-epub_page_size/height").isEmpty()) {
+            QString pageHeight = QString::number(defaultEpubPageHeight);
+            writeFile(".config/13-epub_page_size/height", pageHeight);
+            writeFile(".config/13-epub_page_size/set", "true");
         }
-        else {
-            std::string pageHeight = std::to_string(defaultEpubPageHeight);
-            string_writeconfig(".config/13-epub_page_size/height", pageHeight);
-            string_writeconfig(".config/13-epub_page_size/set", "true");
-            string_checkconfig_ro(".config/13-epub_page_size/height");
-        }
-        mupdf::epub::height = checkconfig_str_val.toInt();
+        mupdf::epub::height = readFile(".config/13-epub_page_size/height").toInt();
     }
     else if(fileType == 1) {
         defineDefaultPageSize(1);
@@ -1894,19 +1778,14 @@ void reader::on_text_selectionChanged() {
                         global::reader::highlightAlreadyDone = true;
                     }
 
-                    textDialog * textDialogWindow = new textDialog(this);
-                    QObject::connect(textDialogWindow, &textDialog::destroyed, this, &reader::unsetTextDialogLock);
-                    QObject::connect(textDialogWindow, &textDialog::highlightText, this, &reader::highlightText);
-                    QObject::connect(textDialogWindow, &textDialog::unhighlightText, this, &reader::unhighlightText);
-                    textDialogWindow->setAttribute(Qt::WA_DeleteOnClose);
-                    textDialogWindow->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
-                    textDialogWindow->move(mapFromGlobal(QCursor::pos()));
-                    textDialogWindow->show();
-                }
-                else {
-                    cursor.clearSelection();
-                    ui->text->setTextCursor(cursor);
-                }
+                textDialog * textDialogWindow = new textDialog(this);
+                QObject::connect(textDialogWindow, &textDialog::destroyed, this, &reader::unsetTextDialogLock);
+                QObject::connect(textDialogWindow, &textDialog::highlightText, this, &reader::highlightText);
+                QObject::connect(textDialogWindow, &textDialog::unhighlightText, this, &reader::unhighlightText);
+                textDialogWindow->setAttribute(Qt::WA_DeleteOnClose);
+                textDialogWindow->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
+                textDialogWindow->move(mapFromGlobal(ui->text->cursorRect().bottomRight()));
+                textDialogWindow->show();
             }
         }
         else {
@@ -1920,16 +1799,16 @@ void reader::on_nightModeBtn_clicked()
     if(isNightModeActive == true) {
         // Disabling night/dark mode
         log("Setting night mode to OFF", className);
-        string_writeconfig("/tmp/invertScreen", "n");
-        string_writeconfig(".config/10-dark_mode/config", "false");
+        writeFile("/tmp/invertScreen", "n");
+        writeFile(".config/10-dark_mode/config", "false");
         ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-empty.png"));
         isNightModeActive = false;
     }
     else {
         // Enabling night/dark mode
         log("Setting night mode to ON", className);
-        string_writeconfig("/tmp/invertScreen", "y");
-        string_writeconfig(".config/10-dark_mode/config", "true");
+        writeFile("/tmp/invertScreen", "y");
+        writeFile(".config/10-dark_mode/config", "true");
         ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-full.png"));
         isNightModeActive = true;
     }
@@ -2000,9 +1879,9 @@ void reader::getTotalEpubPagesNumber() {
     epubProc->waitForFinished();
     epubProc->deleteLater();
 
-    string_checkconfig_ro("/run/epub_total_pages_number");
-    totalPagesInt = checkconfig_str_val.toInt();
-    log("ePUB total pages number: " + checkconfig_str_val, className);
+    QString totalPages = readFile("/run/epub_total_pages_number");
+    totalPagesInt = totalPages.toInt();
+    log("ePUB total pages number: " + totalPages, className);
     QFile::remove("/run/epub_total_pages_number");
 }
 
@@ -2026,6 +1905,7 @@ void reader::gotoPage(int pageNumber) {
             setup_book(book_file, mupdf::epub::epubPageNumber, true);
             ui->text->setText("");
             ui->text->setText(epubPageContent);
+            global::reader::currentViewportText = ui->text->toHtml();
 
             pagesTurned = 0;
             writeconfig_pagenumber(false);
@@ -2152,11 +2032,11 @@ bool reader::pdf_file_match(QString file) {
 
     if(fileExt == "pdf" or fileExt == "PDF") {
         log("Book file format: PDF", className);
-        string_writeconfig("/inkbox/bookIsPdf", "true");
+        writeFile("/inkbox/bookIsPdf", "true");
         return true;
     }
     else {
-        string_writeconfig("/inkbox/bookIsPdf", "false");
+        writeFile("/inkbox/bookIsPdf", "false");
         return false;
     }
 }
@@ -2164,16 +2044,16 @@ bool reader::pdf_file_match(QString file) {
 bool reader::image_file_match(QString file) {
     if(file.right(3) == "png" or file.right(3) == "PNG" or file.right(3) == "jpg" or file.right(3) == "JPG" or file.right(3) == "bmp" or file.right(3) == "BMP" or file.right(3) == "tif" or file.right(3) == "TIF") {
         log("File format: image", className);
-        string_writeconfig("/inkbox/bookIsImage", "true");
+        writeFile("/inkbox/bookIsImage", "true");
         return true;
     }
     else if(file.right(4) == "jpeg" or file.right(4) == "JPEG" or file.right(4) == "tiff" or file.right(4) == "TIFF") {
         log("File format: image", className);
-        string_writeconfig("/inkbox/bookIsImage", "true");
+        writeFile("/inkbox/bookIsImage", "true");
         return true;
     }
     else {
-        string_writeconfig("/inkbox/bookIsImage", "false");
+        writeFile("/inkbox/bookIsImage", "false");
         return false;
     }
 }
@@ -2188,9 +2068,9 @@ void reader::getTotalPdfPagesNumber() {
     epubProc->waitForFinished();
     epubProc->deleteLater();
 
-    string_checkconfig_ro("/run/pdf_total_pages_number");
-    totalPagesInt = checkconfig_str_val.toInt();
-    log("Total PDF pages number: " + checkconfig_str_val, className);
+    QString totalPages = readFile("/run/pdf_total_pages_number");
+    totalPagesInt = totalPages.toInt();
+    log("Total PDF pages number: " + totalPages, className);
     QFile::remove("/run/pdf_total_pages_number");
 }
 
@@ -2287,8 +2167,8 @@ void reader::closeIndefiniteToast() {
 
 void reader::getPdfOrientation(QString file) {
     log("Getting viewport orientation for PDF file '" + file + "'", className);
-    string_writeconfig("/inkbox/pdf_orientation_file_request", file.toStdString());
-    string_writeconfig("/opt/ibxd", "get_pdf_orientation\n");
+    writeFile("/inkbox/pdf_orientation_file_request", file);
+    writeFile("/opt/ibxd", "get_pdf_orientation\n");
     while(true) {
         if(QFile::exists("/inkbox/pdf_orientation_result")) {
             QString result = readFile("/inkbox/pdf_orientation_result").trimmed();
@@ -2418,28 +2298,25 @@ void reader::on_marginsSlider_valueChanged(int value)
     ui->marginsValueLabel->setText(QString::number(value + 1));
 }
 
-void reader::on_wordSearchBox_clicked(bool checked)
+void reader::on_brightnessBtn_clicked()
 {
-    bool_writeconfig(wordLookupEnablePath, checked);
-    wordLookupEnabled = checked;
-
-    if(highlightEnabled == true or wordLookupEnabled == true) {
-        ui->text->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    }
-    else {
-        ui->text->setTextInteractionFlags(Qt::NoTextInteraction);
-    }
+    log("Showing Brightness Dialog", className);
+    brightnessDialogWindow = new brightnessDialog();
+    brightnessDialogWindow->setAttribute(Qt::WA_DeleteOnClose);
+    brightnessDialogWindow->show();
 }
 
-void reader::on_highlightingBox_clicked(bool checked)
-{
-    bool_writeconfig(highlightEnablePath, checked);
-    highlightEnabled = checked;
-
-    if(highlightEnabled == true or wordLookupEnabled == true) {
-        ui->text->setTextInteractionFlags(Qt::TextSelectableByMouse);
-    }
-    else {
-        ui->text->setTextInteractionFlags(Qt::NoTextInteraction);
+void reader::setCinematicBrightnessWarmthSlot() {
+    if(global::reader::globalReadingSettings == false) {
+        if(global::deviceID != "n705\n" and global::deviceID != "n905\n" and global::deviceID != "kt\n") {
+            int brightness_value = brightnessCheckconfig(".config/03-brightness/config");
+            log("Local Reading Settings: Setting brightness to " + QString::number(brightness_value), className);
+            cinematicBrightness(brightness_value, 2);
+        }
+        if(global::deviceID == "n249\n" or global::deviceID == "n873\n") {
+            int warmthValue = readFile(".config/03-brightness/config-warmth").toInt();
+            log("Local Reading Settings: Setting warmth to " + QString::number(warmthValue), className);
+            cinematicWarmth(warmthValue);
+        }
     }
 }

@@ -47,7 +47,7 @@ bookInfoDialog::bookInfoDialog(QWidget *parent) :
             global::library::bookId = readFile(idPath).toULong();
 
             QPixmap coverPixmap(coverPath);
-            QPixmap scaledCoverPixmap = coverPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+            QPixmap scaledCoverPixmap = coverPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
             ui->bookCoverLabel->setPixmap(scaledCoverPixmap);
             global::library::isLatestBook = false;
 
@@ -58,13 +58,13 @@ bookInfoDialog::bookInfoDialog(QWidget *parent) :
 
             QDir gutenbergDir;
             gutenbergDir.mkpath("/inkbox/gutenberg");
-            string_writeconfig("/inkbox/gutenberg/bookid", QString::number(global::library::bookId).toStdString());
-            string_writeconfig("/opt/ibxd", "gutenberg_get_cover\n");
+            writeFile("/inkbox/gutenberg/bookid", QString::number(global::library::bookId));
+            writeFile("/opt/ibxd", "gutenberg_get_cover\n");
             while(true) {
                 if(QFile::exists("/inkbox/gutenberg/getCoverDone")) {
                     if(checkconfig("/inkbox/gutenberg/getCoverDone") == true) {
                         QPixmap coverPixmap("/inkbox/gutenberg/book_cover.jpg");
-                        QPixmap scaledCoverPixmap = coverPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+                        QPixmap scaledCoverPixmap = coverPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                         ui->bookCoverLabel->setPixmap(scaledCoverPixmap);
                         QFile::remove("/inkbox/gutenberg/getCoverDone");
                         break;
@@ -148,9 +148,9 @@ void bookInfoDialog::on_getBtn_clicked()
 {
     QDir gutenbergDir;
     gutenbergDir.mkpath("/inkbox/gutenberg");
-    string_writeconfig("/inkbox/gutenberg/bookid", QString::number(global::library::bookId).toStdString());
-    string_writeconfig("/inkbox/gutenberg/booktitle", global::library::bookTitle.toStdString());
-    string_writeconfig("/opt/ibxd", "gutenberg_get_book\n");
+    writeFile("/inkbox/gutenberg/bookid", QString::number(global::library::bookId));
+    writeFile("/inkbox/gutenberg/booktitle", global::library::bookTitle);
+    writeFile("/opt/ibxd", "gutenberg_get_book\n");
 
     global::toast::modalToast = true;
     global::toast::indefiniteToast = true;
@@ -179,5 +179,6 @@ void bookInfoDialog::waitForBookFetch() {
                 break;
             }
         }
+        QThread::msleep(500);
     }
 }

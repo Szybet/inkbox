@@ -8,3 +8,4 @@ qrc_*
 .vscode
 deploy.sh
 exec
+.qtc_clangd

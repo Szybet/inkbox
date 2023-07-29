@@ -1,6 +1,6 @@
 /*
     InkBox: Open-source Qt-based eBook reader
-    Copyright (C) 2021-2022 Nicolas Mailloux <nicolecrivain@gmail.com>
+    Copyright (C) 2021-2023 Nicolas Mailloux <nicolecrivain@gmail.com>
     SPDX-License-Identifier: GPL-3.0-only
 
     This program is free software: you can redistribute it and/or modify
@@ -47,7 +47,7 @@ int main(int argc, char *argv[])
     log("Running on device " + global::deviceID, "main", true);
 
     // Tell the OS that we're currently running
-    string_writeconfig("/tmp/inkbox_running", "true");
+    writeFile("/tmp/inkbox_running", "true");
 
     setDefaultWorkDir();
     if(checkconfig("/run/wifi_able") == true) {
@@ -66,9 +66,15 @@ int main(int argc, char *argv[])
     if(QFile::exists("/tmp/rescan_userapps")) {
         QFile::remove("/tmp/rescan_userapps");
         log("Re-scanning user applications from explicit request", "main");
-        string_writeconfig("/opt/ibxd", "gui_apps_stop\n");
-        QThread::msleep(1000);
-        string_writeconfig("/opt/ibxd", "gui_apps_start\n");
+        writeFile("/opt/ibxd", "gui_apps_stop\n");
+        while(true) {
+            if(QFile::exists("/tmp/gui_apps_stopped")) {
+                QFile::remove("/tmp/gui_apps_stopped");
+                break;
+            }
+            QThread::msleep(500);
+        }
+        writeFile("/opt/ibxd", "gui_apps_start\n");
         while(true) {
             if(QFile::exists("/tmp/gui_apps_started")) {
                 if(checkconfig("/tmp/gui_apps_started") == true) {
@@ -83,6 +89,7 @@ int main(int argc, char *argv[])
                     break;
                 }
             }
+            QThread::msleep(500);
         }
         updateUserAppsMainJsonFile();
     }
@@ -165,7 +172,7 @@ int main(int argc, char *argv[])
             global::reader::startUsbmsPrompt = true;
             global::reader::skipOpenDialog = true;
 
-            string_writeconfig("/inkbox/skip_opendialog", "true");
+            writeFile("/inkbox/skip_opendialog", "true");
             if(global::deviceID == "n705\n") {
                 global::isN705 = true;
             }
@@ -186,6 +193,9 @@ int main(int argc, char *argv[])
             }
             else if(global::deviceID == "n306\n") {
                 global::isN306 = true;
+            }
+	    else if(global::deviceID == "n249\n") {
+                global::isN249 = true;
             }
             else if(global::deviceID == "kt\n") {
                 global::isKT = true;
@@ -231,8 +241,11 @@ int main(int argc, char *argv[])
             else if(global::deviceID == "n437\n") {
                 global::isN437 = true;
             }
-            else if(global::deviceID == "n306\n") {
+	    else if(global::deviceID == "n306\n") {
                 global::isN306 = true;
+            }
+	    else if(global::deviceID == "n249\n") {
+                global::isN249 = true;
             }
             else if(global::deviceID == "kt\n") {
                 global::isKT = true;

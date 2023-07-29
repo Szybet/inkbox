@@ -32,11 +32,11 @@ brightnessDialog::brightnessDialog(QWidget *parent) :
     ui->incBtn->setProperty("type", "borderless");
     ui->incBtn->setText("");
     ui->incBtn->setIcon(QIcon(":/resources/plus.png"));
-    ui->brightnessLabel->setStyleSheet("font-size: 11pt; padding-left: 125px; padding-right: 125px; font:bold");
+    ui->brightnessLabel->setStyleSheet("padding-left: 125px; padding-right: 125px; font:bold");
     ui->valueLabel->setStyleSheet("font-size: 9pt");
     ui->warmthValueLabel->setStyleSheet("font-size: 9pt");
 
-    if(global::isN705 == true or global::isN905C == true or global::isN613 == true or global::isKT == true) {
+    if(global::isN249 == false and global::isN873 == false) {
         ui->warmthSlider->hide();
         ui->warmthDecBtn->hide();
         ui->warmthIncBtn->hide();
@@ -48,7 +48,7 @@ brightnessDialog::brightnessDialog(QWidget *parent) :
         ui->warmthValueLabel->deleteLater();
         this->adjustSize();
     }
-    else if (global::isN873 == true){
+    else if(global::isN249 == true or global::isN873 == true) {
         ui->warmthDecBtn->setProperty("type", "borderless");
         ui->warmthIncBtn->setProperty("type", "borderless");
         ui->warmthDecBtn->setText("");
@@ -69,22 +69,39 @@ brightnessDialog::brightnessDialog(QWidget *parent) :
         this->adjustSize();
     }
 
-    // I know, Mini and Touch don't have frontlights but that's a template to include others later...
     int value;
     int warmthValue;
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        value = get_brightness();
-        if(global::isN873 == true) {
-            warmthValue = get_warmth();
-            ui->warmthSlider->setValue(warmthValue);
+    if(global::isN249 == true or global::isN873 == true) {
+        if(global::isN249 == true) {
+            ui->warmthSlider->setMaximum(100);
+        }
+        else if(global::isN873 == true) {
+            ui->warmthSlider->setMaximum(10);
+        }
+    }
+    if(global::isN249 or global::isN873 == true) {
+        value = getBrightness();
+        if(global::isN249 == true or global::isN873 == true) {
+            warmthValue = getWarmth();
+            if(warmthValue == 0) {
+                if(global::isN249 == true) {
+                    ui->warmthValueLabel->setText("0%");
+                }
+                else {
+                    ui->warmthValueLabel->setText("0");
+                }
+            }
+            else {
+                ui->warmthSlider->setValue(warmthValue);
+            }
         }
     }
     else if(global::isN613 == true) {
         setDefaultWorkDir();
-        value = brightness_checkconfig(".config/03-brightness/config");
+        value = brightnessCheckconfig(".config/03-brightness/config");
     }
     else {
-        value = get_brightness();
+        value = getBrightness();
     }
 
     // Setting the slider to the appropriate position
@@ -94,33 +111,20 @@ brightnessDialog::brightnessDialog(QWidget *parent) :
     QString valueStr = QString::number(value);
     valueStr = valueStr.append("%");
     ui->valueLabel->setText(valueStr);
-    // Warmth value label
-    if(global::isN873 == true) {
-        warmthValue = get_warmth();
-        QString warmthValueStr = QString::number(warmthValue);
-        ui->warmthValueLabel->setText(warmthValueStr);
-    }
-
-    // UI fonts
-    int id = QFontDatabase::addApplicationFont(":/resources/fonts/CrimsonPro-Bold.ttf");
-    QString family = QFontDatabase::applicationFontFamilies(id).at(0);
-    QFont crimson_bold(family);
-
-    ui->brightnessLabel->setFont(QFont(crimson_bold));
 
     // Saving current brightness value in case we want to go backwards
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        oldValue = get_brightness();
-        if(global::isN873 == true) {
-            oldWarmthValue = get_warmth();
+    if(global::isN249 == true or global::isN873 == true) {
+        oldValue = getBrightness();
+        if(global::isN249 == true or global::isN873 == true) {
+            oldWarmthValue = getWarmth();
         }
     }
     else if(global::isN613 == true) {
         setDefaultWorkDir();
-        oldValue = brightness_checkconfig(".config/03-brightness/config");
+        oldValue = brightnessCheckconfig(".config/03-brightness/config");
     }
     else {
-        oldValue = get_brightness();
+        oldValue = getBrightness();
     }
 }
 
@@ -132,15 +136,15 @@ brightnessDialog::~brightnessDialog()
 void brightnessDialog::on_quitBtn_clicked()
 {
     // Reverting back to the old value
-    brightnessDialog::pre_set_brightness(oldValue);
-    if(global::isN873 == true) {
-        set_warmth(oldWarmthValue);
+    brightnessDialog::preSetBrightness(oldValue);
+    if(global::isN249 == true or global::isN873 == true) {
+        setWarmth(oldWarmthValue);
     }
 
     // Just in case ;)
-    brightness_writeconfig(oldValue);
-    if(global::isN873 == true) {
-        warmth_writeconfig(oldWarmthValue);
+    brightnessWriteconfig(oldValue);
+    if(global::isN249 == true or global::isN873 == true) {
+        warmthWriteconfig(oldWarmthValue);
     }
 
     // Leaving
@@ -149,7 +153,7 @@ void brightnessDialog::on_quitBtn_clicked()
 
 void brightnessDialog::on_horizontalSlider_valueChanged(int value)
 {
-    brightnessDialog::pre_set_brightness(value);
+    brightnessDialog::preSetBrightness(value);
     QString valueStr = QString::number(value);
     valueStr = valueStr.append("%");
     ui->valueLabel->setText(valueStr);
@@ -177,33 +181,33 @@ void brightnessDialog::on_okBtn_clicked()
 
     // Write brightness config
     log("Display brightness set to " + QString::number(brightnessValue), className);
-    brightness_writeconfig(brightnessValue);
-    if(global::isN873 == true) {
+    brightnessWriteconfig(brightnessValue);
+    if(global::isN249 == true or global::isN873 == true) {
         warmthValue = ui->warmthSlider->value();
         log("Display warmth set to " + QString::number(warmthValue), className);
-        warmth_writeconfig(warmthValue);
+        warmthWriteconfig(warmthValue);
     }
 
     // Leaving
     brightnessDialog::close();
 }
 
-void brightnessDialog::pre_set_brightness(int brightnessValue) {
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        set_brightness(brightnessValue);
-    }
-    else if(global::isN613 == true) {
-        set_brightness_ntxio(brightnessValue);
+void brightnessDialog::preSetBrightness(int brightnessValue) {
+    if(global::isN613 == true) {
+        setBrightness_ntxio(brightnessValue);
     }
     else {
-        set_brightness(brightnessValue);
+        setBrightness(brightnessValue);
     }
 }
 
 void brightnessDialog::on_warmthSlider_valueChanged(int value)
 {
-    set_warmth(value);
+    setWarmth(value);
     QString valueStr = QString::number(value);
+    if(global::isN249 == true) {
+        valueStr = valueStr + "%";
+    }
     ui->warmthValueLabel->setText(valueStr);
 }
 

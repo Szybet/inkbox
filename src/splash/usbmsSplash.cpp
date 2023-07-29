@@ -42,7 +42,7 @@ usbmsSplash::usbmsSplash(QWidget *parent) :
         }
 
         QPixmap pixmap(":/resources/kobox-icon.png");
-        QPixmap scaledPixmap = pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        QPixmap scaledPixmap = pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         ui->label_2->setPixmap(scaledPixmap);
     }
     else {
@@ -54,7 +54,7 @@ usbmsSplash::usbmsSplash(QWidget *parent) :
         ui->label_3->setStyleSheet("QLabel { background-color : black; color : white; font-size: 10pt }");
 
         QPixmap pixmap(":/resources/usbms.png");
-        QPixmap scaledPixmap = pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+        QPixmap scaledPixmap = pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
         ui->label_2->setPixmap(scaledPixmap);
     }
 
@@ -67,28 +67,53 @@ usbmsSplash::usbmsSplash(QWidget *parent) :
 void usbmsSplash::usbmsLaunch()
 {
     log("Entering USBMS session", className);
-    string_writeconfig("/tmp/in_usbms", "true");
+    writeFile("/tmp/in_usbms", "true");
     QTimer::singleShot(1500, this, SLOT(brightnessDown()));
+    QTimer::singleShot(1500, this, SLOT(warmthDown()));
 
     if(global::usbms::koboxExportExtensions == true) {
-        string_writeconfig("/opt/ibxd", "kobox_extensions_storage_unmount\n");
+        writeFile("/opt/ibxd", "kobox_extensions_storage_unmount\n");
     }
     if(checkconfig("/external_root/run/encfs_mounted") == true) {
-        string_writeconfig("/external_root/run/encfs_stop_cleanup", "true");
-        string_writeconfig("/opt/ibxd", "encfs_stop\n");
-        QThread::msleep(1500);
+        writeFile("/external_root/run/encfs_stop_cleanup", "true");
+        writeFile("/opt/ibxd", "encfs_stop\n");
+        while(true) {
+            if(QFile::exists("/tmp/encfs_stopped")) {
+                QFile::remove("/tmp/encfs_stopped");
+                break;
+            }
+            QThread::msleep(500);
+        }
     }
 
-    string_writeconfig("/opt/ibxd", "onboard_unmount\n");
-    QThread::msleep(500);
+    writeFile("/opt/ibxd", "gui_apps_stop\n");
+    while(true) {
+        if(QFile::exists("/tmp/gui_apps_stopped")) {
+            QFile::remove("/tmp/gui_apps_stopped");
+            break;
+        }
+        QThread::msleep(500);
+    }
 
-    string_writeconfig("/opt/ibxd", "usbnet_stop\n");
-    QThread::msleep(1000);
+    writeFile("/opt/ibxd", "onboard_unmount\n");
+    while(true) {
+        if(QFile::exists("/tmp/onboard_unmounted")) {
+            QFile::remove("/tmp/onboard_unmounted");
+            break;
+        }
+        QThread::msleep(500);
+    }
 
-    string_writeconfig("/opt/ibxd", "gui_apps_stop\n");
-    QThread::msleep(1000);
+    writeFile("/opt/ibxd", "usbnet_stop\n");
+    while(true) {
+        if(QFile::exists("/tmp/usbnet_stopped")) {
+            QFile::remove("/tmp/usbnet_stopped");
+            break;
+        }
+        QThread::msleep(500);
+    }
 
-    if(global::deviceID == "n306\n" or global::deviceID == "n873\n") {
+    if(global::deviceID == "n306\n" or global::deviceID == "n249\n" or global::deviceID == "n873\n") {
         QProcess::execute("insmod", QStringList() << "/external_root/lib/modules/fs/configfs/configfs.ko");
         QProcess::execute("insmod", QStringList() << "/external_root/lib/modules/drivers/usb/gadget/libcomposite.ko");
         QProcess::execute("insmod", QStringList() << "/external_root/lib/modules/drivers/usb/gadget/function/usb_f_mass_storage.ko");
@@ -144,7 +169,7 @@ void usbmsSplash::usbmsLaunch()
                     float stdIconHeight = sH / 2;
 
                     QPixmap pixmap(":/resources/clock-inverted.png");
-                    QPixmap scaledPixmap = pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
+                    QPixmap scaledPixmap = pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
                     ui->label_2->setPixmap(scaledPixmap);
 
                     this->repaint();
@@ -179,9 +204,15 @@ void usbmsSplash::brightnessDown() {
     writeFile("/tmp/inkbox-cinematicBrightness_ran", "false");
 }
 
+void usbmsSplash::warmthDown() {
+    if(global::deviceID == "n249\n" or global::deviceID == "n873\n") {
+        cinematicWarmth(0);
+    }
+}
+
 void usbmsSplash::quit_restart() {
     // If existing, cleaning bookconfig_mount mountpoint
-    string_writeconfig("/opt/ibxd", "bookconfig_unmount\n");
+    writeFile("/opt/ibxd", "bookconfig_unmount\n");
 
     // Restarting InkBox
     QProcess process;
@@ -192,17 +223,38 @@ void usbmsSplash::quit_restart() {
 void usbmsSplash::restartServices() {
     // Restarting USBNet
     // NOTE: USBNet is only started if required conditions are met (see https://github.com/Kobo-InkBox/rootfs/blob/master/etc/init.d/usbnet)
-    string_writeconfig("/opt/ibxd", "usbnet_start\n");
-    QThread::msleep(1000);
+    writeFile("/opt/ibxd", "usbnet_start\n");
+    while(true) {
+        if(QFile::exists("/tmp/usbnet_started")) {
+            QFile::remove("/tmp/usbnet_started");
+            break;
+        }
+        QThread::msleep(500);
+    }
+
     // Mounting onboard storage
-    string_writeconfig("/opt/ibxd", "onboard_mount\n");
-    QThread::msleep(1000);
+    writeFile("/opt/ibxd", "onboard_mount\n");
+    while(true) {
+        if(QFile::exists("/tmp/onboard_mounted")) {
+            QFile::remove("/tmp/onboard_mounted");
+            break;
+        }
+        QThread::msleep(500);
+    }
+
     // Checking for updates
-    string_writeconfig("/opt/ibxd", "update_inkbox_restart\n");
-    QThread::msleep(2500);
-    string_writeconfig("/tmp/in_usbms", "false");
+    writeFile("/opt/ibxd", "update_inkbox_restart\n");
+    while(true) {
+        if(QFile::exists("/tmp/update_inkbox_restarted")) {
+            QFile::remove("/tmp/update_inkbox_restarted");
+            break;
+        }
+        QThread::msleep(500);
+    }
+
+    QFile::remove("/tmp/in_usbms");
     // GUI apps: update main JSON file
-    string_writeconfig("/opt/ibxd", "gui_apps_start\n");
+    writeFile("/opt/ibxd", "gui_apps_start\n");
     while(true) {
         if(QFile::exists("/tmp/gui_apps_started")) {
             if(checkconfig("/tmp/gui_apps_started") == true) {
@@ -216,6 +268,17 @@ void usbmsSplash::restartServices() {
                 break;
             }
         }
+        QThread::msleep(500);
+    }
+    // Remove macOS dotfiles
+    {
+        QString prog("busybox-initrd");
+        QStringList args;
+        args << "find" << "/mnt/onboard/onboard" << "-type" << "f" << "-name" << "._*" << "-delete";
+        QProcess * proc = new QProcess();
+        proc->start(prog, args);
+        proc->waitForFinished();
+        proc->deleteLater();
     }
     // Re-generate local library on next launch
     QFile::remove(global::localLibrary::databasePath);

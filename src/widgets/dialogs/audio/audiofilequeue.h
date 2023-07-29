@@ -16,8 +16,9 @@ public:
     explicit audiofilequeue(QWidget *parent = nullptr);
     ~audiofilequeue();
     QString className = this->metaObject()->className();
+    bool isPlaying = false;
 
-    void provideData(global::audio::musicFile fileProvided);
+    void provideData(global::audio::musicFile fileProvided, bool gray);
     global::audio::musicFile file;
 
 public slots:
@@ -29,6 +30,9 @@ private:
 signals:
     void playFileChild(int itemInQueue);
 
+private slots:
+    void on_deleteBtn_clicked();
+    void on_playBtn_clicked();
 };
 
 #endif // AUDIOFILEQUEUE_H

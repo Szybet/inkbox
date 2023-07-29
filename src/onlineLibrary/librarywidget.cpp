@@ -62,6 +62,14 @@ libraryWidget::libraryWidget(QWidget *parent) :
     ui->book6Btn->setText("");
     ui->book7Btn->setText("");
     ui->book8Btn->setText("");
+    ui->book1Btn->setProperty("type", "borderless");
+    ui->book2Btn->setProperty("type", "borderless");
+    ui->book3Btn->setProperty("type", "borderless");
+    ui->book4Btn->setProperty("type", "borderless");
+    ui->book5Btn->setProperty("type", "borderless");
+    ui->book6Btn->setProperty("type", "borderless");
+    ui->book7Btn->setProperty("type", "borderless");
+    ui->book8Btn->setProperty("type", "borderless");
     if(global::deviceID != "n705\n" and global::deviceID != "n905\n" and global::deviceID != "kt\n") {
         ui->book9Btn->setText("");
         ui->book10Btn->setText("");
@@ -71,6 +79,14 @@ libraryWidget::libraryWidget(QWidget *parent) :
         ui->book14Btn->setText("");
         ui->book15Btn->setText("");
         ui->book16Btn->setText("");
+        ui->book9Btn->setProperty("type", "borderless");
+        ui->book10Btn->setProperty("type", "borderless");
+        ui->book11Btn->setProperty("type", "borderless");
+        ui->book12Btn->setProperty("type", "borderless");
+        ui->book13Btn->setProperty("type", "borderless");
+        ui->book14Btn->setProperty("type", "borderless");
+        ui->book15Btn->setProperty("type", "borderless");
+        ui->book16Btn->setProperty("type", "borderless");
     }
     else {
         ui->book9Btn->hide();
@@ -150,10 +166,10 @@ libraryWidget::libraryWidget(QWidget *parent) :
     sH = QGuiApplication::screens()[0]->size().height();
 
     // Prevent abusive sync
-    string_checkconfig_ro("/external_root/opt/storage/gutenberg/last_sync");
-    if(!checkconfig_str_val.isEmpty()) {
+    QString lastSync = readFile("/external_root/opt/storage/gutenberg/last_sync");
+    if(!lastSync.isEmpty()) {
         unsigned long currentEpoch = QDateTime::currentSecsSinceEpoch();
-        unsigned long syncEpoch = checkconfig_str_val.toULong();
+        unsigned long syncEpoch = lastSync.toULong();
         unsigned long allowSyncEpoch = syncEpoch + 86400;
         if(currentEpoch > allowSyncEpoch) {
             syncCatalog();
@@ -175,8 +191,15 @@ libraryWidget::~libraryWidget()
 void libraryWidget::setupView() {
     ui->booksStackedWidget->show();
 
-    stdIconWidth = sW / 5.5;
-    stdIconHeight = sH / 5.5;
+    if(global::deviceID == "n705\n") {
+        stdIconWidth = sW / 7
+        ;
+        stdIconHeight = sH / 7;
+    }
+    else {
+        stdIconWidth = sW / 5.5;
+        stdIconHeight = sH / 5.5;
+    }
 
     ui->book1Label->setText(readFile("/mnt/onboard/onboard/.inkbox/gutenberg-data/latest-books/1/title"));
     ui->book2Label->setText(readFile("/mnt/onboard/onboard/.inkbox/gutenberg-data/latest-books/2/title"));
@@ -248,14 +271,15 @@ void libraryWidget::closeIndefiniteToast() {
 void libraryWidget::syncCatalog() {
     global::toast::modalToast = true;
     global::toast::indefiniteToast = true;
-    bool syncDone = false;
     log("Gutenberg sync in progress", className);
     showToast("Sync in progress");
+    QTimer::singleShot(500, this, SLOT(syncCatalogSlot()));
+}
 
-    string_writeconfig("/opt/ibxd", "gutenberg_sync\n");
-    QTimer * syncCheckTimer = new QTimer(this);
-    syncCheckTimer->setInterval(500);
-    connect(syncCheckTimer, &QTimer::timeout, [&]() {
+void libraryWidget::syncCatalogSlot() {
+    bool syncDone = false;
+    writeFile("/opt/ibxd", "gutenberg_sync\n");
+    while(true) {
         if(syncDone == false) {
             if(QFile::exists("/inkbox/gutenbergSyncDone") == true) {
                 if(checkconfig("/inkbox/gutenbergSyncDone") == true) {
@@ -270,10 +294,11 @@ void libraryWidget::syncCatalog() {
                 }
                 QFile::remove("/inkbox/gutenbergSyncDone");
                 syncDone = true;
+                break;
             }
         }
-    } );
-    syncCheckTimer->start();
+        QThread::msleep(500);
+    }
 }
 
 void libraryWidget::on_previousBtn_clicked()

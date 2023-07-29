@@ -129,7 +129,7 @@ void wifilogger::getWifiInformation() {
     if(waitingForFile == false) {
         wifiInformationPath.remove();
         log("Sending get_wifi_information ibxd call", className);
-        string_writeconfig("/opt/ibxd", "get_wifi_information\n");
+        writeFile("/opt/ibxd", "get_wifi_information\n");
         waitingForFile = true;
     }
 
@@ -174,7 +174,6 @@ void wifilogger::getWifiInformation() {
     }
 }
 
-
 void wifilogger::on_returnBtn_clicked()
 {
     log("Exiting wifilogger", className);
@@ -190,6 +189,8 @@ void wifilogger::updateLogs() {
 
         ui->fancyLogsText->setText(fancyLogsText);
         ui->allLogsText->setText(allLogsText);
+        ui->fancyLogsText->verticalScrollBar()->setValue(ui->fancyLogsText->verticalScrollBar()->maximum());
+        ui->allLogsText->verticalScrollBar()->setValue(ui->allLogsText->verticalScrollBar()->maximum());
     }
 }
 

@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>755</width>
+    <width>749</width>
     <height>601</height>
    </rect>
   </property>
@@ -28,7 +28,7 @@
        </widget>
       </item>
       <item row="0" column="4">
-       <widget class="QLabel" name="label_2">
+       <widget class="QLabel" name="labelLine_2">
         <property name="text">
          <string>―</string>
         </property>
@@ -107,7 +107,6 @@
          <font>
           <family>Inter</family>
           <pointsize>11</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -131,7 +130,7 @@
        </widget>
       </item>
       <item row="0" column="2">
-       <widget class="QLabel" name="label">
+       <widget class="QLabel" name="labelLine_1">
         <property name="text">
          <string>―</string>
         </property>
@@ -143,13 +142,15 @@
          <font>
           <family>Inter</family>
           <pointsize>11</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
         </property>
         <property name="text">
-         <string>batt</string>
+         <string>time</string>
+        </property>
+        <property name="alignment">
+         <set>Qt::AlignCenter</set>
         </property>
        </widget>
       </item>
@@ -166,7 +167,6 @@
          <font>
           <family>Inter</family>
           <pointsize>11</pointsize>
-          <weight>50</weight>
           <italic>false</italic>
           <bold>false</bold>
          </font>
@@ -249,7 +249,6 @@
                    <font>
                     <family>Inter</family>
                     <pointsize>11</pointsize>
-                    <weight>75</weight>
                     <italic>false</italic>
                     <bold>true</bold>
                    </font>
@@ -327,7 +326,6 @@
                        <font>
                         <family>Chivo</family>
                         <pointsize>11</pointsize>
-                        <weight>50</weight>
                         <italic>true</italic>
                         <bold>false</bold>
                        </font>
@@ -484,7 +482,6 @@
          <font>
           <family>Inter</family>
           <pointsize>11</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -502,7 +499,6 @@ Library
          <font>
           <family>Inter</family>
           <pointsize>11</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -553,7 +549,6 @@ Reader
          <font>
           <family>Inter</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -587,7 +582,6 @@ Search
          <font>
           <family>Inter</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -621,7 +615,6 @@ Settings
          <font>
           <family>Inter</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>
@@ -661,7 +654,6 @@ Apps
          <font>
           <family>Inter</family>
           <pointsize>10</pointsize>
-          <weight>75</weight>
           <italic>false</italic>
           <bold>true</bold>
          </font>

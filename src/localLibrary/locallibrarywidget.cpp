@@ -36,10 +36,13 @@ localLibraryWidget::localLibraryWidget(QWidget *parent) :
     }
 
     if(global::deviceID == "n705\n") {
-        bookTitleTruncateThreshold = 30;
+        bookTitleTruncateThreshold = 27;
     }
     else if(global::deviceID == "n873\n") {
         bookTitleTruncateThreshold = 45;
+    }
+    else if(global::deviceID == "n306\n") {
+        bookTitleTruncateThreshold = 32;
     }
     else {
         bookTitleTruncateThreshold = 35;
@@ -54,36 +57,36 @@ localLibraryWidget::localLibraryWidget(QWidget *parent) :
     sW = QGuiApplication::screens()[0]->size().width();
     sH = QGuiApplication::screens()[0]->size().height();
 
-    if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "kt\n") {
+    if(global::deviceID == "n705\n") {
+        stdIconWidthDivider = 7.2;
+        stdIconHeightDivider = 7.2;
+    }
+    else if(global::deviceID == "n905\n" or global::deviceID == "kt\n") {
         stdIconWidthDivider = 9.5;
         stdIconHeightDivider = 9.5;
-        stdIconWidth = sW / stdIconWidthDivider;
-        stdIconHeight = sH / stdIconHeightDivider;
     }
-    else if(global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n306\n" or global::deviceID == "emu\n") {
-        stdIconWidthDivider = 8.5;
-        stdIconHeightDivider = 8.5;
-        stdIconWidth = sW / stdIconWidthDivider;
-        stdIconHeight = sH / stdIconHeightDivider;
+    else if(global::deviceID == "n613\n" or global::deviceID == "emu\n") {
+        stdIconWidthDivider = 8.7;
+        stdIconHeightDivider = 8.7;
     }
-    else if(global::deviceID == "n437\n") {
-        stdIconWidthDivider = 8;
-        stdIconHeightDivider = 8;
-        stdIconWidth = sW / stdIconWidthDivider;
-        stdIconHeight = sH / stdIconHeightDivider;
+    else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
+        stdIconWidthDivider = 8.1;
+        stdIconHeightDivider = 8.1;
     }
     else if(global::deviceID == "n873\n") {
         stdIconWidthDivider = 9.7;
         stdIconHeightDivider = 9.7;
-        stdIconWidth = sW / stdIconWidthDivider;
-        stdIconHeight = sH / stdIconHeightDivider;
+    }
+    else if(global::deviceID == "n236\n" or global::deviceID == "n306\n") {
+        stdIconWidthDivider = 9.1;
+        stdIconHeightDivider = 9.1;
     }
     else {
         stdIconWidthDivider = 9.5;
         stdIconHeightDivider = 9.5;
-        stdIconWidth = sW / stdIconWidthDivider;
-        stdIconHeight = sH / stdIconHeightDivider;
     }
+    stdIconWidth = sW / stdIconWidthDivider;
+    stdIconHeight = sH / stdIconHeightDivider;
 
     setupButtonsLook();
 
@@ -135,11 +138,12 @@ void localLibraryWidget::setupDatabase() {
         QStringList args;
         args << "env" << "icon_width_divider=" + QString::number(stdIconWidthDivider - 1.5) << "icon_height_divider=" + QString::number(stdIconHeightDivider - 1.5) << "./explore_local_library.sh" << booksList;
 
-         /* Logs/steps needed to debug the database creation
-         * for(int i = 0; i < args.count(); i++) {
-         *     log("Arguments for database creation: '" + args[i] + "'", className);
-         * }
-         */
+        /*
+        *   Logs/steps needed to debug the database creation
+        *   for(int i = 0; i < args.count(); i++) {
+        *       log("Arguments for database creation: '" + args[i] + "'", className);
+        *   }
+        */
 
         QProcess *proc = new QProcess();
         proc->start(prog, args);
@@ -244,11 +248,11 @@ void localLibraryWidget::setupBooksList(int pageNumber) {
         if(!coverPath.isEmpty()) {
             // Display book cover if found
             QPixmap pixmap(coverPath);
-            bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio));
+            bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::IgnoreAspectRatio));
         }
         else {
             QPixmap pixmap(":/resources/cover_unavailable.png");
-            bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+            bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
         }
 
         // Display book title
@@ -364,7 +368,7 @@ void localLibraryWidget::btnOpenBook(int buttonNumber) {
     if(id == global::localLibrary::folderID) {
         if(folderFeatureEnabled == true) {
             log("A folder was selected", className);
-            QString directory = purgeHtml(bookBtnArray[buttonNumber]->text());
+            QString directory = bookBtnArray[buttonNumber]->statusTip();
             changePathAndRefresh(directory);
         }
     }
@@ -458,7 +462,7 @@ void localLibraryWidget::openBookOptionsDialog(int pseudoBookID) {
         if(folderFeatureEnabled == true) {
             bookID = id;
             log("Opening options dialog for directory", className);
-            QString directoryPath = purgeHtml(bookBtnArray[pseudoBookID]->text());
+            QString directoryPath = bookBtnArray[pseudoBookID]->statusTip();
             log("Directory path is '" + directoryPath + "'", className);
             global::localLibrary::bookOptionsDialog::isFolder = true;
             global::localLibrary::bookOptionsDialog::folderPath = pathForFolders + directoryPath;
@@ -570,7 +574,14 @@ void localLibraryWidget::setupBooksListFolders(int pageNumber) {
                 lineArray[in]->show();
             }
 
-            bookBtnArray[in]->setText("<font face='Inter'><b>" + directoryListPure.at(directoryCount) + "</b></font>");
+            QString directoryNameFull = directoryListPure.at(directoryCount);
+            bookBtnArray[in]->setStatusTip(directoryNameFull);
+            QString directoryNameNotFull = directoryNameFull;
+            if(directoryNameNotFull.length() > bookTitleTruncateThreshold) {
+                directoryNameNotFull.truncate(bookTitleTruncateThreshold);
+                directoryNameNotFull.append("...");
+            }
+            bookBtnArray[in]->setText("<font face='Inter'><b>" + directoryNameNotFull + "</b></font>");
             bookIconArray[in]->setPixmap(pixmapForFolder.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation));
 
             // ID for indicating that it's a folder in btnOpenBook
@@ -603,11 +614,11 @@ void localLibraryWidget::setupBooksListFolders(int pageNumber) {
             if(QFile(coverPath).exists()) {
                 // Display book cover if found
                 QPixmap pixmap(coverPath);
-                bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio));
+                bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::IgnoreAspectRatio));
             }
             else {
                 QPixmap pixmap(":/resources/cover_unavailable.png");
-                bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+                bookIconArray[in]->setPixmap(pixmap.scaled(stdIconWidth, stdIconHeight, Qt::IgnoreAspectRatio, Qt::SmoothTransformation));
             }
 
             // Display book title

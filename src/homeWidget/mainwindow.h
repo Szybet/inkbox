@@ -102,6 +102,8 @@ private slots:
     void resetFullWindow();
     void setupLocalLibraryWidget();
     void setupHomePageWidget();
+    void launchOnlineLibrary();
+    void on_audioBtn_clicked();
 
     void on_audioBtn_clicked();
 
