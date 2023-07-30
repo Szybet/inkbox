@@ -209,7 +209,7 @@
   </layout>
  </widget>
  <resources>
-  <include location="../eink.qrc"/>
+  <include location="eink.qrc"/>
  </resources>
  <connections/>
 </ui>

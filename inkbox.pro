@@ -78,7 +78,6 @@ SOURCES += \
 HEADERS += \
     src/audio/audiothread.h \
     src/apps/todo.h \
-    src/audio/audiothread.h \
     src/toreader/toreader.h \
     src/toreader/toreaderFunctions.h \
     src/toreader/toreaderthread.h \
@@ -186,9 +185,9 @@ INCLUDEPATH += $$system(find ./ -type d -print -path ./.git -prune | grep -v "./
 # libsndfile - audio
 INCLUDEPATH += $$PWD/libs/libsndfile/include/
 DEPENDPATH += $$PWD/libs/libsndfile/include/
-LIBS += -L$$PWD/libs/prebuild -lsndfile
+LIBS += -L$$PWD/libs/prebuilt -lsndfile
 
 # libreader-rs - toreader
 INCLUDEPATH += $$PWD/libs/libreader-rs/lib/include/
 DEPENDPATH += $$PWD/libs/libreader-rs/lib/include/
-LIBS += -L$$PWD/libs/prebuild -lreader_rs
+LIBS += -L$$PWD/libs/prebuilt -lreader_rs
