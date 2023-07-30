@@ -26,6 +26,7 @@ DEFINES += GIT_COMMIT=\\\"$$GIT_COMMIT\\\"
 SOURCES += \
     src/apps/todo.cpp \
     src/audio/audiothread.cpp \
+    src/toreader/mupdfCaller.cpp \
     src/toreader/toreader.cpp \
     src/toreader/toreaderFunctions.cpp \
     src/toreader/toreaderthread.cpp \
@@ -78,6 +79,7 @@ SOURCES += \
 HEADERS += \
     src/audio/audiothread.h \
     src/apps/todo.h \
+    src/toreader/mupdfCaller.h \
     src/toreader/toreader.h \
     src/toreader/toreaderFunctions.h \
     src/toreader/toreaderthread.h \
@@ -180,7 +182,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     src/eink.qrc
 
-INCLUDEPATH += $$system(find src/ -type d -print -path ./.git -prune | grep -v "./.git")
+INCLUDEPATH += $$system(find src/ -type d -print)
 
 # libsndfile - audio
 INCLUDEPATH += $$PWD/libs/libsndfile/include/
@@ -194,8 +196,13 @@ DEPENDPATH += $$PWD/libs/libreader-rs/lib/include/
 LIBS += -L$$PWD/libs/libreader-rs/lib/ -lreader_rs
 
 # mutool
-#INCLUDEPATH += $$PWD/libs/mupdf/mupdf/include/
-#DEPENDPATH += $$PWD/libs/mupdf/mupdf/include/
-#LIBS += -L$$PWD/libs/mupdf/mupdf/build/shared-release/ -lmupdf
+INCLUDEPATH += $$PWD/libs/mupdf/mupdf/include/
+DEPENDPATH += $$PWD/libs/mupdf/mupdf/include/
+LIBS += -L$$PWD/libs/mupdf/mupdf/build/shared-release/ -lmupdf
 
 # Use a build folder
+DESTDIR = build/
+OBJECTS_DIR = build/.obj
+MOC_DIR = build/.moc
+RCC_DIR = build/.rcc
+UI_DIR = build/.ui
