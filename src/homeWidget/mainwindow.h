@@ -105,8 +105,6 @@ private slots:
     void launchOnlineLibrary();
     void on_audioBtn_clicked();
 
-    void on_audioBtn_clicked();
-
 private:
     Ui::MainWindow * ui;
     settingsChooser * settingsChooserWindow;

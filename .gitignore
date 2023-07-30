@@ -9,3 +9,4 @@ qrc_*
 deploy.sh
 exec
 .qtc_clangd
+build/

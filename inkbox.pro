@@ -180,7 +180,7 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 RESOURCES += \
     src/eink.qrc
 
-INCLUDEPATH += $$system(find ./ -type d -print -path ./.git -prune | grep -v "./.git")
+INCLUDEPATH += $$system(find src/ -type d -print -path ./.git -prune | grep -v "./.git")
 
 # libsndfile - audio
 INCLUDEPATH += $$PWD/libs/libsndfile/include/
@@ -190,4 +190,12 @@ LIBS += -L$$PWD/libs/prebuilt -lsndfile
 # libreader-rs - toreader
 INCLUDEPATH += $$PWD/libs/libreader-rs/lib/include/
 DEPENDPATH += $$PWD/libs/libreader-rs/lib/include/
-LIBS += -L$$PWD/libs/prebuilt -lreader_rs
+# It's our tool, so no prebuild, just compile it
+LIBS += -L$$PWD/libs/libreader-rs/lib/ -lreader_rs
+
+# mutool
+#INCLUDEPATH += $$PWD/libs/mupdf/mupdf/include/
+#DEPENDPATH += $$PWD/libs/mupdf/mupdf/include/
+#LIBS += -L$$PWD/libs/mupdf/mupdf/build/shared-release/ -lmupdf
+
+# Use a build folder

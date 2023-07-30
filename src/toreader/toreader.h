@@ -31,7 +31,6 @@ public:
     void mainSetStyle(); // Main function calling others to set style, to make the code above better looking
     void iconsSizeSet();
     void setFonts();
-    void nightmode();
     void hideThings();
 
 signals:

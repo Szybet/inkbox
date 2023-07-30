@@ -123,41 +123,17 @@ toreader::toreader(QWidget *parent) :
     // Getting brightness level
     int brightness_value;
     if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        brightness_value = get_brightness();
+        brightness_value = getBrightness();
     }
     else if(global::isN613 == true) {
         setDefaultWorkDir();
-        brightness_value = brightness_checkconfig(".config/03-brightness/config");
+        // Not sure?
+        brightness_value = getBrightness();
     }
     else {
-        brightness_value = get_brightness();
+        brightness_value = getBrightness();
     }
     ui->brightnessStatus->setValue(brightness_value);
-
-    // Checking if there is a page refresh setting set
-    string_checkconfig(".config/04-book/refresh");
-    if(checkconfig_str_val == "") {
-        // Writing the default, refresh every 3 pages
-        string_writeconfig(".config/04-book/refresh", "3");
-        string_checkconfig(".config/04-book/refresh");
-    }
-    else {
-        // A config option was set, continuing after the Else statement...
-        ;
-    }
-    /*
-    pageRefreshSetting = checkconfig_str_val.toInt();
-    // Checking if that config option was set to "Never refresh"...
-    if(pageRefreshSetting == -1) {
-        log("Setting page refresh to 'disabled'", className);
-        neverRefresh = true;
-    }
-    else {
-        // Safety measure
-        log("Setting page refresh to each " + checkconfig_str_val + " pages", className);
-        neverRefresh = false;
-    }
-    */
 
     // Clock setting to show seconds + battery level
     if(checkconfig(".config/02-clock/config") == true) {
@@ -165,8 +141,8 @@ toreader::toreader(QWidget *parent) :
         t->setInterval(500);
         connect(t, &QTimer::timeout, [&]() {
            QString time = QTime::currentTime().toString("hh:mm:ss");
-           get_battery_level();
-           ui->batteryLabel->setText(batt_level);
+           getBatteryLevel();
+           ui->batteryLabel->setText(batteryLevel);
            ui->timeLabel->setText(time);
         } );
         t->start();
@@ -176,8 +152,8 @@ toreader::toreader(QWidget *parent) :
         t->setInterval(500);
         connect(t, &QTimer::timeout, [&]() {
            QString time = QTime::currentTime().toString("hh:mm");
-           get_battery_level();
-           ui->batteryLabel->setText(batt_level);
+           getBatteryLevel();
+           ui->batteryLabel->setText(batteryLevel);
            ui->timeLabel->setText(time);
         } );
         t->start();
@@ -466,7 +442,6 @@ void toreader::mainSetStyle() {
 
     iconsSizeSet();
     hideThings();
-    nightmode();
     setFonts();
 
     // Device specific
@@ -638,33 +613,6 @@ void toreader::setFonts() {
     QString family = QFontDatabase::applicationFontFamilies(id).at(0);
     QFont crimson(family);
     ui->bookInfoLabel->setFont(crimson);
-}
-
-void toreader::nightmode() {
-    // Night mode
-    if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n") {
-        if(checkconfig(".config/10-dark_mode/config") == true) {
-            log("Setting night mode to ON", className);
-            string_writeconfig("/tmp/invertScreen", "y");
-            ui->nightModeBtn->setText("");
-            ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-full.png"));
-            isNightModeActive = true;
-        }
-        else {
-            log("Setting night mode to OFF", className);
-            string_writeconfig("/tmp/invertScreen", "n");
-            ui->nightModeBtn->setText("");
-            ui->nightModeBtn->setIcon(QIcon(":/resources/nightmode-empty.png"));
-            isNightModeActive = false;
-        }
-    }
-    else {
-        log("Night mode disabled by software", className);
-        ui->line_7->hide();
-        ui->line_7->deleteLater();
-        ui->nightModeBtn->hide();
-        ui->nightModeBtn->deleteLater();
-    }
 }
 
 void toreader::hideThings() {

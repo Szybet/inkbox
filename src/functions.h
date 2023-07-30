@@ -1207,6 +1207,30 @@ namespace {
         fhandler << str.toStdString();
         fhandler.close();
     }
+    namespace mutex {
+        bool boolCheck(bool& theBool, QMutex& theMutex) {
+            bool returnBool;
+            theMutex.lock();
+            returnBool = theBool;
+            theMutex.unlock();
+            return returnBool;
+        }
+        void intPlus(int& theInt, QMutex& theMutex) {
+            theMutex.lock();
+            theInt++;
+            theMutex.unlock();
+        }
+        void intMinus(int& theInt, QMutex& theMutex) {
+            theMutex.lock();
+            theInt--;
+            theMutex.unlock();
+        }
+        void boolSet(bool& theBool, QMutex& theMutex, bool toSet) {
+            theMutex.lock();
+            theBool = toSet;
+            theMutex.unlock();
+        }
+    }
 }
 
 #endif // FUNCTIONS_H
