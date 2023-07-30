@@ -78,11 +78,6 @@ public:
     bool textDialogLock;
     bool isNightModeActive;
     bool goToSavedPageDone;
-    bool wordLookupEnabled = true; // .config/04-book/word-lookup-enabled
-    bool highlightEnabled = true; // .config/04-book/highlighting-enabled
-    QString highlightEnablePath = ".config/04-book/highlighting-enabled";
-    QString wordLookupEnablePath = ".config/04-book/word-lookup-enabled";
-
     QString ittext;
     QString book_file;
     QString selected_text;

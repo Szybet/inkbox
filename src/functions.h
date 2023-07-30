@@ -297,10 +297,6 @@ namespace {
     void logDisabled(QString configOption, QString className) {
         log("Disabling " + configOption + " setting", className);
     }
-    // Rewrited this function
-    // 1 if it returns it doesnt closes the file
-    // 2 just use qt functions
-    // ~Szybet
     bool checkconfig(QString file) {
         if(QFile::exists(file)) {
             QFile config(file);

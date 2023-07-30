@@ -69,11 +69,6 @@ MainWindow::MainWindow(QWidget *parent)
     ui->inkboxLabel->setStyleSheet("font-size: 10.5pt");
     ui->homeBtn->setStyleSheet("padding: 5px");
 
-    if(global::audio::enabled == false) {
-        ui->audioBtn->hide();
-        ui->audioLine->hide();
-    }
-
     // Initializing some variables
     global::battery::showLowBatteryDialog = true;
     global::battery::showCriticalBatteryAlert = true;

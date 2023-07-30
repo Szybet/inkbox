@@ -345,12 +345,10 @@ void localLibraryWidget::on_nextPageBtn_clicked()
 }
 
 void localLibraryWidget::openBook(int bookID) {
-    log("test");
-    QJsonObject jsonObject1 = databaseJsonArrayList.at(bookID).toObject();
-    QString bookPath1 = jsonObject1["BookPath"].toString();
-    log("Opening book with ID " + QString::number(bookID) + ", path '" + bookPath1 + "'", className);
-
-
+    // Another log that shouldn't be deleted :)
+    //QJsonObject jsonObject1 = databaseJsonArrayList.at(bookID).toObject();
+    //QString bookPath1 = jsonObject1["BookPath"].toString();
+    //log("Opening book with ID " + QString::number(bookID) + ", path '" + bookPath1 + "'", className);
 
     QJsonObject jsonObject = databaseJsonArrayList.at(bookID - 1).toObject();
     QString bookPath = jsonObject["BookPath"].toString();
