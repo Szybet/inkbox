@@ -11,22 +11,29 @@ class toreaderThread : public QObject
 public:
     explicit toreaderThread(QObject *parent = nullptr);
 
+    /*
     enum RequestType {
-        Launch,
+        Restart,
         Cache,
         Next,
         Back,
         GoTo,
     };
     Q_ENUM(RequestType);
+    */
+    int latestPage = 0;
+    bool isInit = false;
 
-    QString className = this->metaObject()->className();
+
+    //void startCache();
+    //void stopCache();
+
+public slots:    
+    void initMuPdf(QString format);
     void getPage(int page);
-    QVector<int> existingPages;
-    void stopManage(QMutex& mutexOfThings, int& intToCheck, int valueToLookFor, bool& boolToSet, bool boolValue, QString logToGive);
 
-public slots:
-    void receivedPage(int page, RequestType request);
+signals:
+    void postPage(QByteArray* data);
 
 private:
 };

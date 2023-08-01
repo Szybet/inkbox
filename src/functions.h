@@ -1,6 +1,7 @@
 #ifndef FUNCTIONS_H
 #define FUNCTIONS_H
 
+#include <QByteArray>
 #include <QFile>
 #include <QString>
 #include <QTextStream>
@@ -22,6 +23,7 @@
 #include <QCryptographicHash>
 #include <QNetworkInterface>
 #include <QMutex>
+#include <QFont>
 
 #include <stdio.h>
 #include <fcntl.h>
@@ -55,13 +57,31 @@ namespace global {
         inline QString currentViewportText;
     }
     namespace toreader {
-        inline QString filePath;
-        inline QMutex FileReadyMutex;
-        inline bool fileReady = false;
-        inline QMutex StopMutex; // For both stop values
-        inline bool stop = false;
-        inline int stopCount = 0; // If no task ( that we want to stop is running, for example cache ) is running, it's 0. Tasks add to this, and then delete itself ( -1 ). // It's more for logs than anything
-        // Also the last StopCount function will turn bool stop to false back and give a log
+        inline QVector<QByteArray*> pages; // Pluses to this: we don't place data in vector, so it won't be shifted, just places somewhere else. Clean this at exit
+        // Yes, QByteArray is a pointer to some data
+        inline QString filePath; // We need to know from where to load this config
+        // The `config` name is reserved? idk
+        // Slow variables mean that if enabled, they will be executed in another thread, so non blocking. But it will take more time and not be available
+        struct toreaderConfig {
+            int savedPage = 1;
+            QString format; // For now possible values: pdf, epub, txt, image ( yes any image )
+            QFont font;
+            int fontSize = 9; // It's the same as for QFont just easier to access
+            int lineSpacing = 1;
+            QVector<int> margins; // Starting from left clockwise: left, top, right, bottom
+            int alignment; // 0 left, 1 center, 2 right, 3 justify
+            int brightness;
+            int brightnessWarmth;
+            int width;
+            int height;
+            bool highlighting;
+            bool loadHighlightsSlow;
+            int progress = -1;
+            int pagesCount = -1;
+            bool pageCountSlow;
+            int preCachedPages = 3;
+        };
+        inline global::toreader::toreaderConfig loadedConfig;
     }
     namespace kobox {
         inline bool showKoboxSplash;
@@ -1206,30 +1226,6 @@ namespace {
         fhandler.open(file.toStdString());
         fhandler << str.toStdString();
         fhandler.close();
-    }
-    namespace mutex {
-        bool boolCheck(bool& theBool, QMutex& theMutex) {
-            bool returnBool;
-            theMutex.lock();
-            returnBool = theBool;
-            theMutex.unlock();
-            return returnBool;
-        }
-        void intPlus(int& theInt, QMutex& theMutex) {
-            theMutex.lock();
-            theInt++;
-            theMutex.unlock();
-        }
-        void intMinus(int& theInt, QMutex& theMutex) {
-            theMutex.lock();
-            theInt--;
-            theMutex.unlock();
-        }
-        void boolSet(bool& theBool, QMutex& theMutex, bool toSet) {
-            theMutex.lock();
-            theBool = toSet;
-            theMutex.unlock();
-        }
     }
 }
 

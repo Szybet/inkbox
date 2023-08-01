@@ -155,6 +155,12 @@
        <property name="horizontalScrollBarPolicy">
         <enum>Qt::ScrollBarAlwaysOff</enum>
        </property>
+       <property name="readOnly">
+        <bool>false</bool>
+       </property>
+       <property name="cursorWidth">
+        <number>0</number>
+       </property>
       </widget>
      </item>
      <item row="21" column="0">
@@ -175,7 +181,6 @@
         <widget class="QPushButton" name="previousBtn">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -208,7 +213,6 @@
         <widget class="QPushButton" name="optionsBtn">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -221,7 +225,6 @@
         <widget class="QPushButton" name="nextBtn">
          <property name="font">
           <font>
-           <weight>75</weight>
            <bold>true</bold>
           </font>
          </property>
@@ -306,7 +309,6 @@
             <widget class="QLabel" name="wordSearchLabel">
              <property name="font">
               <font>
-               <weight>75</weight>
                <bold>true</bold>
               </font>
              </property>
@@ -382,7 +384,6 @@
                <property name="font">
                 <font>
                  <family>Inter</family>
-                 <weight>75</weight>
                  <bold>true</bold>
                 </font>
                </property>
@@ -593,7 +594,6 @@
                   <widget class="QLabel" name="timeLabel">
                    <property name="font">
                     <font>
-                     <weight>75</weight>
                      <bold>true</bold>
                     </font>
                    </property>
@@ -644,7 +644,6 @@
                   <widget class="QLabel" name="inkboxLabel">
                    <property name="font">
                     <font>
-                     <weight>75</weight>
                      <bold>true</bold>
                     </font>
                    </property>
@@ -694,6 +693,9 @@
          <item>
           <widget class="QStackedWidget" name="brightnessWidget">
            <property name="lineWidth">
+            <number>0</number>
+           </property>
+           <property name="currentIndex">
             <number>0</number>
            </property>
            <widget class="QWidget" name="page_12">
@@ -777,6 +779,9 @@
          </item>
          <item>
           <widget class="QStackedWidget" name="pdfScaleWidget">
+           <property name="currentIndex">
+            <number>0</number>
+           </property>
            <widget class="QWidget" name="page_15">
             <layout class="QVBoxLayout" name="verticalLayout_10">
              <property name="leftMargin">
@@ -1311,37 +1316,27 @@
            <property name="bottomMargin">
             <number>0</number>
            </property>
-           <item row="0" column="11">
-            <widget class="QLabel" name="batteryLabel">
-             <property name="font">
-              <font>
-               <weight>75</weight>
-               <bold>true</bold>
-              </font>
-             </property>
+           <item row="0" column="0">
+            <widget class="QPushButton" name="homeBtn">
              <property name="text">
-              <string>Battery</string>
+              <string>  Home  </string>
              </property>
             </widget>
            </item>
-           <item row="0" column="2">
-            <widget class="QPushButton" name="aboutBtn">
+           <item row="0" column="5">
+            <widget class="QPushButton" name="quitBtn">
              <property name="text">
-              <string>  About  </string>
+              <string>Quit</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="12">
-            <widget class="QLabel" name="batteryIconLabel">
-             <property name="text">
-              <string>Battery Icon</string>
+           <item row="0" column="6">
+            <widget class="Line" name="line_19">
+             <property name="frameShadow">
+              <enum>QFrame::Plain</enum>
              </property>
-            </widget>
-           </item>
-           <item row="0" column="4">
-            <widget class="QPushButton" name="nightModeBtn">
-             <property name="text">
-              <string>Night mode</string>
+             <property name="orientation">
+              <enum>Qt::Vertical</enum>
              </property>
             </widget>
            </item>
@@ -1356,6 +1351,25 @@
             </widget>
            </item>
            <item row="0" column="8">
+            <widget class="QLabel" name="batteryIconLabel">
+             <property name="text">
+              <string>Battery Icon</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="7">
+            <widget class="QLabel" name="batteryLabel">
+             <property name="font">
+              <font>
+               <bold>true</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>Battery</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="4">
             <spacer name="horizontalSpacer_2">
              <property name="orientation">
               <enum>Qt::Horizontal</enum>
@@ -1368,57 +1382,10 @@
              </property>
             </spacer>
            </item>
-           <item row="0" column="9">
-            <widget class="QPushButton" name="quitBtn">
-             <property name="text">
-              <string>Quit</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="0">
-            <widget class="QPushButton" name="homeBtn">
-             <property name="text">
-              <string>  Home  </string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="6">
+           <item row="0" column="2">
             <widget class="QPushButton" name="searchBtn">
              <property name="text">
               <string>Search</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="5">
-            <widget class="Line" name="line_17">
-             <property name="frameShadow">
-              <enum>QFrame::Plain</enum>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="3">
-            <widget class="Line" name="line_7">
-             <property name="frameShadow">
-              <enum>QFrame::Plain</enum>
-             </property>
-             <property name="lineWidth">
-              <number>1</number>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="10">
-            <widget class="Line" name="line_19">
-             <property name="frameShadow">
-              <enum>QFrame::Plain</enum>
-             </property>
-             <property name="orientation">
-              <enum>Qt::Vertical</enum>
              </property>
             </widget>
            </item>
