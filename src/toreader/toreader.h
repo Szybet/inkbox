@@ -28,6 +28,7 @@ public:
 
 public slots:
     void receivedPage(QByteArray* data);
+    void launchCalibrate(); // test?
 
 signals:
     void init(QString format);

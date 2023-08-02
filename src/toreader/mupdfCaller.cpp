@@ -156,3 +156,7 @@ QByteArray* getPageData(int number) {
     }
     return realData;
 }
+
+void tryReflowMuPdf(int width, int height, int fontSizeInPoints) {
+    fz_layout_document(ctx, doc, width, height, fontSizeInPoints);
+}

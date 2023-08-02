@@ -5,6 +5,7 @@
 #include "toreaderThread.h"
 #include "libreader-rs.h"
 #include "mupdfCaller.h"
+#include "calibrate.h"
 
 #include <QWidget>
 #include <QGraphicsScene>
@@ -63,6 +64,10 @@ toreader::toreader(QWidget *parent) :
 
     // TODO
     ui->graphicsView->hide();
+
+    ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    ui->text->setWordWrapMode(QTextOption::NoWrap);
 }
 
 toreader::~toreader()
@@ -79,7 +84,7 @@ void toreader::setText(QString textProvided) {
     // https://github.com/Szybet/libreader-rs/blob/0e65478200ec02487eb081637b63ac18e73c242e/src/lib.rs#L145
 
     // writeFile("/tmp/mupdf_pure.html", textProvided);
-    // textProvided = add_spaces(textProvided.toStdString().c_str());
+    textProvided = add_spaces(textProvided.toStdString().c_str());
     // qDebug() << "HTML code after adding spaces:" << textProvided;
     // writeFile("/tmp/mupdf_test_spaces.html", textProvided);
 
@@ -99,10 +104,13 @@ void toreader::setText(QString textProvided) {
 
 void toreader::on_previousBtn_clicked()
 {
+    launchCalibrate();
+    return;
     if(conf->savedPage != 0) {
         conf->savedPage = conf->savedPage - 1;
     }
     emit requestPage(conf->savedPage);
+    qDebug() << "Requesting page:" << conf->savedPage;
 }
 
 void toreader::on_nextBtn_clicked()
@@ -110,8 +118,13 @@ void toreader::on_nextBtn_clicked()
     // TODO: Last page detection
     conf->savedPage = conf->savedPage + 1;
     emit requestPage(conf->savedPage);
+    qDebug() << "Requesting page:" << conf->savedPage;
 }
 
 void toreader::receivedPage(QByteArray* data) {
     setText(QString::fromUtf8(*data));
+}
+
+void toreader::launchCalibrate() {
+    calibrate(this, ui);
 }
