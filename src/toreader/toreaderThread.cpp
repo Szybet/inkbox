@@ -24,14 +24,11 @@ void toreaderThread::initMuPdf(QString format) {
         global::toreader::loadedConfig.width = 280;
         global::toreader::loadedConfig.height = 280;
 
-        initMupdf(global::toreader::loadedConfig.width, global::toreader::loadedConfig.height, 9, "preserve-images=yes", "html", global::toreader::filePath);
+        initMupdf(global::toreader::loadedConfig.width, global::toreader::loadedConfig.height, 9, "preserve-images", "html", global::toreader::filePath);
     }
     else {
         qDebug() << "Unknown format, oh no!";
     }
-    isInit = true;
-    global::toreader::pages.reserve(global::toreader::loadedConfig.pagesCount);
-    getPage(global::toreader::loadedConfig.savedPage);
 
     // Testing
     /*

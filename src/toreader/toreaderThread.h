@@ -22,7 +22,6 @@ public:
     Q_ENUM(RequestType);
     */
     int latestPage = 0;
-    bool isInit = false;
 
 
     //void startCache();

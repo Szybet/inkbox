@@ -91,8 +91,7 @@ void initMupdf(int width, int height, int fontSizeInPoints, QString outputOption
     // This can take time? - yes it does
     qDebug() << "Start counting pages";
     if(global::toreader::loadedConfig.pagesCount == -1) {
-        global::toreader::loadedConfig.pagesCount = fz_count_pages(ctx, doc);
-        qDebug() << "Counting pages (and mupdf init) finished:" << global::toreader::loadedConfig.pagesCount;
+        calculatePagesCount();
     }
     else {
         qDebug() << "Not counting pages, there is no need to";
@@ -104,6 +103,8 @@ void deInitMupdf() {
     fz_drop_document_writer(ctx, out);
     doc = NULL;
     fz_drop_context(ctx);
+    // Remember to call it too, it's not called because of calibrate
+    // clearMemory();
 }
 
 QByteArray* getPageData(int number) {
@@ -154,9 +155,26 @@ QByteArray* getPageData(int number) {
     fz_catch(ctx) {
         fz_rethrow(ctx);
     }
+
     return realData;
 }
 
 void tryReflowMuPdf(int width, int height, int fontSizeInPoints) {
     fz_layout_document(ctx, doc, width, height, fontSizeInPoints);
+}
+
+void calculatePagesCount() {
+    clearMemory();
+    global::toreader::loadedConfig.pagesCount = fz_count_pages(ctx, doc);
+    global::toreader::pages.reserve(global::toreader::loadedConfig.pagesCount);
+    qDebug() << "Counting pages (and mupdf init) finished:" << global::toreader::loadedConfig.pagesCount;
+}
+
+void clearMemory() {
+    for(int i = 1; i <= global::toreader::loadedConfig.pagesCount; i++) {
+        if(global::toreader::pages[i]->isNull() == false) {
+            global::toreader::pages[i]->clear();
+        }
+    }
+    global::toreader::pages.clear();
 }

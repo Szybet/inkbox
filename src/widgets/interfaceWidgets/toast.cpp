@@ -10,6 +10,8 @@ toast::toast(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::toast)
 {
+    this->setAttribute(Qt::WA_DeleteOnClose);
+
     ui->setupUi(this);
     log("Displaying message '" + global::toast::message + "'", className);
 

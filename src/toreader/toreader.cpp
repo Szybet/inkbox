@@ -5,7 +5,7 @@
 #include "toreaderThread.h"
 #include "libreader-rs.h"
 #include "mupdfCaller.h"
-#include "calibrate.h"
+#include "calibrate.h" // Ignore this error of redefinition lol
 
 #include <QWidget>
 #include <QGraphicsScene>
@@ -20,15 +20,25 @@ toreader::toreader(QWidget *parent) :
 {
     ui->setupUi(this);
     qDebug() << "Toreader launched";
+    initVarsForFun(ui, this);
 
     loadConfig();
+    if(global::toreader::loadedConfig.pagesCount == -1) {
+        // As everything is "on the go" we dont want a buffer overflow :D
+        qDebug() << "Start to reserve fallback pages";
+        global::toreader::pages.reserve(100);
+        qDebug() << "Finished to reserve fallback pages";
+    } else {
+        global::toreader::pages.reserve(global::toreader::loadedConfig.pagesCount);
+    }
 
     conf = &global::toreader::loadedConfig;
-    conf->savedPage = 25;
+    conf->savedPage = 1;
+    conf->skipEmptyPages = true;
 
     // Thread
     RequestThread = new QThread(this);
-    toreaderThreadClass = new toreaderThread(this);
+    toreaderThreadClass = new toreaderThread(); // No parent here, thats important!
     toreaderThreadClass->moveToThread(RequestThread);
     RequestThread->start();
     // https://doc.qt.io/qt-6/qobject.html#connect
@@ -41,10 +51,10 @@ toreader::toreader(QWidget *parent) :
 
     connect(toreaderThreadClass, &toreaderThread::postPage, this, &toreader::receivedPage, Qt::QueuedConnection);
 
-    // TODO: QCoreApplication::processEvents();
+    // QCoreApplication::processEvents();
 
     // Look
-    mainSetStyle(ui, this);
+    mainSetStyle();
 
     // This needs to be here for whatever reason... ( here and only here )
     // Clock + battery level
@@ -57,7 +67,7 @@ toreader::toreader(QWidget *parent) :
        ui->timeLabel->setText(time);
     } );
     t->start();
-    batteryWatchdog(this);
+    batteryWatchdog();
 
     // Needed
     ui->gridLayout->setVerticalSpacing(0);
@@ -65,9 +75,8 @@ toreader::toreader(QWidget *parent) :
     // TODO
     ui->graphicsView->hide();
 
-    ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
-    ui->text->setWordWrapMode(QTextOption::NoWrap);
+
+    ui->text->setWordWrapMode(QTextOption::NoWrap); // MuTool wraps words, and we trust it
 }
 
 toreader::~toreader()
@@ -75,15 +84,37 @@ toreader::~toreader()
     delete ui;
 }
 
+bool wasNextAsReason = true; // Default because for page 1 at fresh start
 void toreader::setText(QString textProvided) {
     //log("Pure HTML code: \n" + htmlCode + "\n", className);
+
+    // TODO: we dont request first page yet so... yea it won't work always
+    bool containsImage = false;
+    if(conf->imageAdjust == true || conf->skipEmptyPages == true) {
+        containsImage = textProvided.contains("<img style=");
+    }
+    if(conf->skipEmptyPages == true) {
+        bool skipPage = !containsImage;
+        if(containsImage == false) {
+            skipPage = !textProvided.contains("<span style=");
+        }
+        if(skipPage == true) {
+            qDebug() << "Empty page detected, and we should skip it!";
+            if(wasNextAsReason == true) {
+                nextPage();
+            }
+            else {
+                previousPage();
+            }
+            return void();
+        }
+    }
 
     // libreader-rs
     // TODO: WARNING: Possible memory leak, if qt doesn't manage qstring that well
     // more info:
     // https://github.com/Szybet/libreader-rs/blob/0e65478200ec02487eb081637b63ac18e73c242e/src/lib.rs#L145
-
-    // writeFile("/tmp/mupdf_pure.html", textProvided);
+    writeFile("/tmp/mupdf_pure.html", textProvided);
     textProvided = add_spaces(textProvided.toStdString().c_str());
     // qDebug() << "HTML code after adding spaces:" << textProvided;
     // writeFile("/tmp/mupdf_test_spaces.html", textProvided);
@@ -94,31 +125,27 @@ void toreader::setText(QString textProvided) {
 
     // Mupdf changed something and its not longer needed in mupdf 1.23 ( latest, 2023-08-01 ), it was for sure in 1.20
     // Leaving it here, maybe it's needed for other formats
+    // It's needed actually, but something changed
 
+    writeFile("/tmp/mupdf_test_final.html", textProvided);
     // Yea i got problems with that too, needed logs
     qDebug() << "Setting text";
+
     ui->text->setHtml(textProvided);
+    setTextStyle(&textProvided, containsImage);
+
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     qDebug() << "Setted text";
 }
 
 void toreader::on_previousBtn_clicked()
 {
-    launchCalibrate();
-    return;
-    if(conf->savedPage != 0) {
-        conf->savedPage = conf->savedPage - 1;
-    }
-    emit requestPage(conf->savedPage);
-    qDebug() << "Requesting page:" << conf->savedPage;
+    previousPage();
 }
 
 void toreader::on_nextBtn_clicked()
 {
-    // TODO: Last page detection
-    conf->savedPage = conf->savedPage + 1;
-    emit requestPage(conf->savedPage);
-    qDebug() << "Requesting page:" << conf->savedPage;
+    nextPage();
 }
 
 void toreader::receivedPage(QByteArray* data) {
@@ -126,5 +153,31 @@ void toreader::receivedPage(QByteArray* data) {
 }
 
 void toreader::launchCalibrate() {
+
     calibrate(this, ui);
+}
+
+void toreader::nextPage() {
+    // We don't want to avoid going next when opening a fresh book
+    if(conf->savedPage + 1 > global::toreader::loadedConfig.pagesCount && global::toreader::loadedConfig.pagesCount != -1) {
+        showToast("You are on the last page");
+    }
+    else {
+        conf->savedPage = conf->savedPage + 1;
+        wasNextAsReason = true;
+        emit requestPage(conf->savedPage);
+        qDebug() << "Requesting page:" << conf->savedPage;
+    }
+}
+
+void toreader::previousPage() {
+    if(conf->savedPage == 0) {
+        showToast("You are on the first page");
+    }
+    else {
+        conf->savedPage = conf->savedPage - 1;
+        wasNextAsReason = false;
+        emit requestPage(conf->savedPage);
+        qDebug() << "Requesting page:" << conf->savedPage;
+    }
 }

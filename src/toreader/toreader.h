@@ -26,6 +26,9 @@ public:
     QPixmap scaledFullPixmap;
     QPixmap scaledEmptyPixmap;
 
+    void nextPage();
+    void previousPage();
+
 public slots:
     void receivedPage(QByteArray* data);
     void launchCalibrate(); // test?

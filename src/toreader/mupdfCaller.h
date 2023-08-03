@@ -20,6 +20,9 @@
 void initMupdf(int width, int height, int fontSizeInPoints, QString outputOptions, QString outputFormat, QString filePath);
 void deInitMupdf();
 void tryReflowMuPdf(int width, int height, int fontSizeInPoints);
+void calculatePagesCount();
+void clearMemory();
+
 // This is the real number, not starting from 0
 // Yes, you need to clean the data after!
 QByteArray* getPageData(int number);

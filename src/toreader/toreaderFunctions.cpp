@@ -2,8 +2,18 @@
 #include "build/.ui/ui_toreader.h"
 #include "toreader.h"
 #include "QScreen"
+#include "toast.h"
 
 #include <QFontDatabase>
+
+
+Ui::toreader *ui = NULL;
+toreader* thiss = NULL;
+
+void initVarsForFun(Ui::toreader *uiArg, toreader* thissArg) {
+    ui = uiArg;
+    thiss = thissArg;
+}
 
 void loadConfig() {
     // todo
@@ -12,10 +22,10 @@ void saveConfig() {
     // todo
 }
 
-void batteryWatchdog(toreader* thisRef) {
+void batteryWatchdog() {
     // Battery watchdog
     if(global::reader::startBatteryWatchdog == true) {
-        QTimer *t = new QTimer(thisRef);
+        QTimer *t = new QTimer(thiss);
         t->setInterval(2000);
         QObject::connect(t, &QTimer::timeout, [&]() {
             // Checking if battery level is low
@@ -56,7 +66,7 @@ void batteryWatchdog(toreader* thisRef) {
     }
 }
 
-void mainSetStyle(Ui::toreader *ui, toreader* thiss) {
+void mainSetStyle() {
     // Stylesheet things
     QFile stylesheetFile("/mnt/onboard/.adds/inkbox/eink.qss");
     stylesheetFile.open(QFile::ReadOnly);
@@ -65,9 +75,9 @@ void mainSetStyle(Ui::toreader *ui, toreader* thiss) {
     ui->bookInfoLabel->setStyleSheet("font-style: italic");
     ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
-    iconsSizeSet(ui, thiss);
-    hideThings(ui, thiss);
-    setFonts(ui, thiss);
+    iconsSizeSet();
+    hideThings();
+    setFonts();
 
     // Device specific
 
@@ -94,7 +104,7 @@ void mainSetStyle(Ui::toreader *ui, toreader* thiss) {
     ui->brightnessStatus->setValue(brightnessValue);
 }
 
-void iconsSizeSet(Ui::toreader *ui, toreader* thiss) {
+void iconsSizeSet() {
     // Elements
     ui->brightnessStatus->setFont(QFont("u001"));
     ui->fontLabel->setFont(QFont("u001"));
@@ -211,7 +221,7 @@ void iconsSizeSet(Ui::toreader *ui, toreader* thiss) {
     }
 }
 
-void setFonts(Ui::toreader *ui, toreader* thiss) {
+void setFonts() {
     global::reader::font = readFile(".config/04-book/font");
     if(global::reader::font == "u001") {
         ui->fontChooser->setCurrentText("Univers (u001)");
@@ -251,7 +261,7 @@ void setFonts(Ui::toreader *ui, toreader* thiss) {
     ui->bookInfoLabel->setFont(crimson);
 }
 
-void hideThings(Ui::toreader *ui, toreader* thiss) {
+void hideThings() {
     // Hiding the menubar + definition widget + brightness widget + buttons bar widget
     ui->menuWidget->setVisible(false);
     ui->brightnessWidget->setVisible(false);
@@ -320,4 +330,50 @@ void manageRecentBooksPages() {
     }
     QFile::remove(global::localLibrary::recentBooksDatabasePath);
     writeFile(global::localLibrary::recentBooksDatabasePath, qCompress(QJsonDocument(recentBooksObject).toJson()).toBase64());
+}
+
+void showToast(QString messageToDisplay) {
+    global::toast::message = messageToDisplay;
+    toast* toastWindow = new toast(); // It doesn't need a parent, it's closed anyway
+    toastWindow->show();
+}
+
+// 0 left, 1 center, 2 right, 3 justify
+void setAlignment() {
+    int *alignment = &global::toreader::loadedConfig.alignment;
+    qDebug() << "Setting alignment:" << *alignment;
+    if(*alignment == 0) {
+        ui->text->setAlignment(Qt::AlignLeft);
+    }
+    else if(*alignment == 1) {
+        ui->text->setAlignment(Qt::AlignHCenter);
+    }
+    else if(*alignment == 2) {
+        ui->text->setAlignment(Qt::AlignRight);
+    }
+    else if(*alignment == 3) {
+        ui->text->setAlignment(Qt::AlignJustify);
+    }
+}
+
+int previousAlignment = -1;
+void setTextStyle(QString* textProvided, bool containsImage) {
+    if(global::toreader::loadedConfig.imageAdjust == true) {
+        qDebug() << "Checking for image";
+        if(containsImage == true) {
+            qDebug() << "Image found";
+            previousAlignment = global::toreader::loadedConfig.alignment;
+            global::toreader::loadedConfig.alignment = 1;
+            ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+            ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        }
+        else if(previousAlignment != -1){
+            global::toreader::loadedConfig.alignment = previousAlignment;
+            previousAlignment = -1;
+            ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+            ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+        }
+    }
+    setAlignment();
+
 }

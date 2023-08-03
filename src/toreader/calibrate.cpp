@@ -8,7 +8,7 @@
 
 int calWidth = 100;
 int calHeight = 50;
-int page = 15;
+int page = 1;
 int font = 18;
 int stepValue = 10;
 bool finishedReader = false;
@@ -35,6 +35,30 @@ int maximumHeight= 99999;
 int times = 20;
 bool passHeight = false;
 bool passWidth = false;
+
+void initCalibrate(int howManyPages, int fontSize, Ui::toreader *ui) {
+    ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+    ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+
+    times = howManyPages;
+    font = fontSize;
+    // Default values - reset
+    widthDone = false;
+    waitForRender = false;
+    widthPreciseCalibrate = false;
+    heightPreciseCalibrate = false;
+    launchDelay = 70;
+    maximumWidth= 99999;
+    maximumHeight= 99999;
+    passHeight = false;
+    passWidth = false;
+
+    calWidth = 100;
+    calHeight = 50;
+    page = 1;
+    stepValue = 10;
+    finishedReader = false;
+}
 
 void calibrate(toreader* thiss, Ui::toreader *ui) {
     qDebug() << "Launching calibrate" << calWidth << calHeight;
@@ -127,8 +151,10 @@ void calibrate(toreader* thiss, Ui::toreader *ui) {
                                 qDebug() << "Finished!";
                                 global::toreader::loadedConfig.width = calWidth;
                                 global::toreader::loadedConfig.height = calHeight;
+                                ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+                                ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+                                calculatePagesCount();
                             }
-
                         }
                     });
                     qDebug() << "Dump values:" << widthDone << calWidth << calHeight;

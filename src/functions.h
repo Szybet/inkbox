@@ -57,6 +57,7 @@ namespace global {
         inline QString currentViewportText;
     }
     namespace toreader {
+        // This starts from 0
         inline QVector<QByteArray*> pages; // Pluses to this: we don't place data in vector, so it won't be shifted, just places somewhere else. Clean this at exit
         // Yes, QByteArray is a pointer to some data
         inline QString filePath; // We need to know from where to load this config
@@ -69,17 +70,27 @@ namespace global {
             int fontSize = 9; // It's the same as for QFont just easier to access
             int lineSpacing = 1;
             QVector<int> margins; // Starting from left clockwise: left, top, right, bottom
-            int alignment; // 0 left, 1 center, 2 right, 3 justify
+            int alignment = 0; // 0 left, 1 center, 2 right, 3 justify
             int brightness;
             int brightnessWarmth;
             int width;
             int height;
             bool highlighting;
             bool loadHighlightsSlow;
-            int progress = -1;
+            int progress = -1; // %
             int pagesCount = -1;
             bool pageCountSlow;
             int preCachedPages = 3;
+            bool imageAdjust = true; // If a page containsimages, center the whole page, text too for now - and enable scroll bars just to be sure
+            bool skipEmptyPages = true; // Because cool epubs and their formatting
+            /*
+            2 modes for swaping pages:
+            - buttons
+            - gestures
+            Both can have additionall info ( small battery and time ), and a progress bar at the bottom ( a small one )
+            */
+            bool buttonsEnabled = false;
+            bool additionallInfo = true;
         };
         inline global::toreader::toreaderConfig loadedConfig;
     }
