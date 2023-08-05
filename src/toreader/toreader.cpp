@@ -20,7 +20,8 @@ toreader::toreader(QWidget *parent) :
 {
     ui->setupUi(this);
     qDebug() << "Toreader launched";
-    initVarsForFun(ui, this);
+    conf = &global::toreader::loadedConfig;
+    initVarsForFun(ui, this, conf);
 
     loadConfig();
     if(global::toreader::loadedConfig.pagesCount == -1) {
@@ -32,10 +33,6 @@ toreader::toreader(QWidget *parent) :
         global::toreader::pages.reserve(global::toreader::loadedConfig.pagesCount);
     }
 
-    conf = &global::toreader::loadedConfig;
-    conf->savedPage = 1;
-    conf->skipEmptyPages = true;
-
     // Thread
     RequestThread = new QThread(this);
     toreaderThreadClass = new toreaderThread(); // No parent here, thats important!
@@ -45,12 +42,13 @@ toreader::toreader(QWidget *parent) :
     // https://doc.qt.io/qt-6/qt.html#ConnectionType-enum
     connect(this, &toreader::init, toreaderThreadClass, &toreaderThread::initMuPdf, Qt::QueuedConnection);
     qDebug() << "Start init";
-    emit init("epub");
+    emit init(conf->format);
     qDebug() << "End init";
+
     connect(this, &toreader::requestPage, toreaderThreadClass, &toreaderThread::getPage, Qt::QueuedConnection);
-
     connect(toreaderThreadClass, &toreaderThread::postPage, this, &toreader::receivedPage, Qt::QueuedConnection);
-
+    // First page shown, saved one too
+    emit requestPage(conf->savedPage);
     // QCoreApplication::processEvents();
 
     // Look
@@ -88,7 +86,7 @@ bool wasNextAsReason = true; // Default because for page 1 at fresh start
 void toreader::setText(QString textProvided) {
     //log("Pure HTML code: \n" + htmlCode + "\n", className);
 
-    // TODO: we dont request first page yet so... yea it won't work always
+    // TODO: we dont request first page yet so... yea it won't work always???
     bool containsImage = false;
     if(conf->imageAdjust == true || conf->skipEmptyPages == true) {
         containsImage = textProvided.contains("<img style=");
@@ -181,3 +179,9 @@ void toreader::previousPage() {
         qDebug() << "Requesting page:" << conf->savedPage;
     }
 }
+
+void toreader::on_optionsBtn_clicked()
+{
+    openMenu();
+}
+

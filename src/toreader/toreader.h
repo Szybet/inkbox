@@ -20,12 +20,6 @@ public:
     void setText(QString textProvided);
     global::toreader::toreaderConfig* conf;
 
-    // Battery icons?
-    QPixmap scaledChargingPixmap;
-    QPixmap scaledHalfPixmap;
-    QPixmap scaledFullPixmap;
-    QPixmap scaledEmptyPixmap;
-
     void nextPage();
     void previousPage();
 
@@ -40,6 +34,8 @@ signals:
 private slots:
     void on_previousBtn_clicked();
     void on_nextBtn_clicked();
+
+    void on_optionsBtn_clicked();
 
 private:
     Ui::toreader *ui;

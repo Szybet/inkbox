@@ -4,23 +4,108 @@
 #include "QScreen"
 #include "toast.h"
 
+#include <QSettings>
 #include <QFontDatabase>
-
+#include <QCryptographicHash>
 
 Ui::toreader *ui = NULL;
 toreader* thiss = NULL;
+global::toreader::toreaderConfig* conf;
 
-void initVarsForFun(Ui::toreader *uiArg, toreader* thissArg) {
+void initVarsForFun(Ui::toreader *uiArg, toreader* thissArg, global::toreader::toreaderConfig* confArg) {
     ui = uiArg;
     thiss = thissArg;
+    conf = confArg;
 }
 
+QSettings *settings;
 void loadConfig() {
-    // todo
+    QFile file(global::toreader::filePath);
+    // add together 3k bytes at the beginning, middle, end of the file and make a md5sum of them
+    if(file.open(QIODevice::ReadOnly | QIODevice::Unbuffered) == false) {
+        qDebug() << "Failed to open this book" << file;
+        exit(-1);
+    }
+    quint64 size = file.size();
+    qDebug() << "The size of the book:" << size;
+    file.seek(0);
+    QByteArray bytes = file.read(3000);
+    file.seek(size / 2);
+    bytes.append(file.read(3000));
+    file.seek(size - 3000);
+    bytes.append(file.read(3000));
+    file.close();
+    QCryptographicHash hash(QCryptographicHash::Md5);
+    hash.addData(bytes);
+    QString md5sum = QString::fromLocal8Bit(hash.result().toHex()); // Yes, to Hex
+    bytes.clear();
+    qDebug() << "The md5sum of the book:" << md5sum;
+
+    global::toreader::configFilePath = "/mnt/onboard/onboard/.progress/" + md5sum + "/config";
+    QFile fileConfig(global::toreader::configFilePath);
+    if(fileConfig.exists() == false) {
+        // Create the dir
+        {
+            QDir dir = QFileInfo(fileConfig).dir();
+            if (dir.mkpath(dir.absolutePath()) == false) {
+                qDebug() << "Failed to create config dir";
+            }
+        }
+        // Load default config
+        // Replace this path with something global in the future
+        QString defaultConfigPath = "/mnt/onboard/.adds/inkbox/.config/settings.ini";
+        QFile defaultConfig(defaultConfigPath);
+        // It doesn't exist :(
+        if(defaultConfig.exists() == false) {
+            QDir dir = QFileInfo(fileConfig).dir();
+            if (dir.mkpath(dir.absolutePath()) == false) {
+                qDebug() << "Failed to create main default config dir";
+            }
+            QSettings *settingsGlobal = new QSettings(defaultConfig.fileName(), QSettings::IniFormat);
+            QVariant variant = QVariant::fromValue(*conf);
+            settingsGlobal->setValue("toreader", variant);
+            settingsGlobal->sync();
+            delete settingsGlobal;
+        }
+        QFile::copy(defaultConfigPath, global::toreader::configFilePath);
+    }
+    settings = new QSettings(global::toreader::configFilePath, QSettings::IniFormat);
+    settings->setParent(thiss);
+    *conf = settings->value("toreader").value<global::toreader::toreaderConfig>();
+    qDebug() << "Loaded config:" << *conf;
+
+    if(conf->format.isEmpty()) {
+        QString format = global::toreader::filePath.split(".").last();
+        qDebug() << "The format is:" << format;
+        if(global::toreader::supportedFormats.contains(format)) {
+            conf->format = format;
+            if(format == "pdf") {
+                conf->usesImageEngine = true;
+            }
+        }
+        else {
+            if(global::toreader::supportedFormatsImages.contains(format)) {
+                conf->format = "image";
+                conf->usesImageEngine = true;
+                conf->isSingleImage = true;
+            }
+            else {
+                qDebug() << "Format is wrong";
+                exit(-1);
+            }
+        }
+    }
 }
 void saveConfig() {
     // todo
 }
+
+// Battery icons?
+// There is an error about qguiapp and pixmal, tldr it needs to be a reference
+QPixmap* scaledChargingPixmap;
+QPixmap* scaledHalfPixmap;
+QPixmap* scaledFullPixmap;
+QPixmap* scaledEmptyPixmap;
 
 void batteryWatchdog() {
     // Battery watchdog
@@ -67,6 +152,7 @@ void batteryWatchdog() {
 }
 
 void mainSetStyle() {
+    qDebug() << "Setting styles";
     // Stylesheet things
     QFile stylesheetFile("/mnt/onboard/.adds/inkbox/eink.qss");
     stylesheetFile.open(QFile::ReadOnly);
@@ -74,13 +160,35 @@ void mainSetStyle() {
     stylesheetFile.close();
     ui->bookInfoLabel->setStyleSheet("font-style: italic");
     ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
+    qDebug() << "Setting other styles";
     iconsSizeSet();
     hideThings();
-    setFonts();
+
+    if(global::deviceID == "n873\n") {
+        ui->nextBtn->setStyleSheet("padding: 13.5px");
+        ui->previousBtn->setStyleSheet("padding: 13.5px");
+        ui->optionsBtn->setStyleSheet("padding: 13.5px");
+    }
+    else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
+        ui->nextBtn->setStyleSheet("padding: 12.5px");
+        ui->previousBtn->setStyleSheet("padding: 12.5px");
+        ui->optionsBtn->setStyleSheet("padding: 12.5px");
+    }
+    else {
+        ui->nextBtn->setStyleSheet("padding: 10px");
+        ui->previousBtn->setStyleSheet("padding: 10px");
+        ui->optionsBtn->setStyleSheet("padding: 10px");
+    }
+    ui->lineSpacingValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
+    ui->homeBtn->setStyleSheet("font-size: 9pt; padding: 5px");
+    ui->brightnessBtn->setStyleSheet("font-size: 9pt; padding: 5px");
+    ui->gotoBtn->setStyleSheet("font-size: 9pt; padding: 9px; font-weight: bold; background: lightGrey");
+    ui->pageNumberLabel->setFont(QFont("Source Serif Pro"));
+    ui->viewHighlightsBtn->setStyleSheet("padding: 9px");
 
     // Device specific
-
     // On the Mini with QT_FONT_DPI set to 187 (default for this device), quitBtn makes the UI go beyond the limits of the screen when the menu bar is shown
     if(global::deviceID == "n705\n") {
         ui->quitBtn->hide();
@@ -88,52 +196,26 @@ void mainSetStyle() {
         ui->line_19->hide();
         ui->line_19->deleteLater();
     }
-
-    // Getting brightness level
-    int brightnessValue;
-    if(global::isN705 == true or global::isN905C == true or global::isKT == true or global::isN873 == true) {
-        brightnessValue = getBrightness();
-    }
-    else if(global::isN613 == true) {
-        setDefaultWorkDir();
-        brightnessValue = getBrightness();
-    }
-    else {
-        brightnessValue = getBrightness();
-    }
-    ui->brightnessStatus->setValue(brightnessValue);
 }
 
 void iconsSizeSet() {
+    qDebug() << "Setting icons sizes";
     // Elements
-    ui->brightnessStatus->setFont(QFont("u001"));
-    ui->fontLabel->setFont(QFont("u001"));
-    ui->sizeLabel->setFont(QFont("u001"));
-    ui->sizeValueLabel->setFont(QFont("Inter"));
     ui->lineSpacingLabel->setFont(QFont("u001"));
     ui->lineSpacingValueLabel->setFont(QFont("Inter"));
-    ui->marginsLabel->setFont(QFont("u001"));
-    ui->marginsValueLabel->setFont(QFont("Inter"));
     ui->alignmentLabel->setFont(QFont("u001"));
-    ui->fontChooser->setFont(QFont("u001"));
-    ui->definitionStatusLabel->setFont(QFont("u001"));
     ui->pageProgressBar->setFont(QFont("u001"));
+    ui->fontBtn->setFont(QFont("u001", 10));
 
     ui->previousBtn->setProperty("type", "borderless");
     ui->nextBtn->setProperty("type", "borderless");
     ui->optionsBtn->setProperty("type", "borderless");
-    ui->brightnessDecBtn->setProperty("type", "borderless");
-    ui->brightnessIncBtn->setProperty("type", "borderless");
     ui->homeBtn->setProperty("type", "borderless");
     ui->alignLeftBtn->setProperty("type", "borderless");
     ui->alignRightBtn->setProperty("type", "borderless");
     ui->alignCenterBtn->setProperty("type", "borderless");
     ui->alignLeftBtn->setProperty("type", "borderless");
     ui->alignJustifyBtn->setProperty("type", "borderless");
-    ui->infoCloseBtn->setProperty("type", "borderless");
-    ui->saveWordBtn->setProperty("type", "borderless");
-    ui->previousDefinitionBtn->setProperty("type", "borderless");
-    ui->nextDefinitionBtn->setProperty("type", "borderless");
     //ui->nightModeBtn->setProperty("type", "borderless");
     ui->searchBtn->setProperty("type", "borderless");
     ui->gotoBtn->setProperty("type", "borderless");
@@ -141,6 +223,7 @@ void iconsSizeSet() {
     ui->decreaseScaleBtn->setProperty("type", "borderless");
     ui->quitBtn->setProperty("type", "borderless");
     ui->viewHighlightsBtn->setProperty("type", "borderless");
+    ui->fontBtn->setProperty("type", "borderless");
 
     // Icons
     ui->alignLeftBtn->setText("");
@@ -151,18 +234,6 @@ void iconsSizeSet() {
     ui->alignCenterBtn->setIcon(QIcon(":/resources/align-center.png"));
     ui->alignJustifyBtn->setText("");
     ui->alignJustifyBtn->setIcon(QIcon(":/resources/align-justify.png"));
-    ui->infoCloseBtn->setText("");
-    ui->infoCloseBtn->setIcon(QIcon(":/resources/close.png"));
-    ui->saveWordBtn->setText("");
-    ui->saveWordBtn->setIcon(QIcon(":/resources/star.png"));
-    ui->previousDefinitionBtn->setText("");
-    ui->previousDefinitionBtn->setIcon(QIcon(":/resources/chevron-left.png"));
-    ui->nextDefinitionBtn->setText("");
-    ui->nextDefinitionBtn->setIcon(QIcon(":/resources/chevron-right.png"));
-    ui->brightnessDecBtn->setText("");
-    ui->brightnessDecBtn->setIcon(QIcon(":/resources/minus.png"));
-    ui->brightnessIncBtn->setText("");
-    ui->brightnessIncBtn->setIcon(QIcon(":/resources/plus.png"));
     ui->homeBtn->setText("");
     ui->homeBtn->setIcon(QIcon(":/resources/home.png"));
     ui->searchBtn->setText("");
@@ -182,12 +253,17 @@ void iconsSizeSet() {
     ui->viewHighlightsBtn->setText("");
     ui->viewHighlightsBtn->setIcon(QIcon(":/resources/view-highlights.png"));
 
+    ui->fontBtn->setText("");
+    ui->fontBtn->setIcon(QIcon("://resources/font.png"));
+    // Make a program wide standard for these.
+    //ui->fontBtn->setIconSize(QSize(128, 128)); // This messes things up...
+
+
     // Defining pixmaps
     // Getting the screen's size
     float sW = QGuiApplication::screens()[0]->size().width();
     float sH = QGuiApplication::screens()[0]->size().height();
     // Defining what the icons' size will be
-    if(checkconfig("/opt/inkbox_genuine") == true) {
         float stdIconWidth;
         float stdIconHeight;
         if(global::deviceID == "n705\n" or global::deviceID == "n905\n" or global::deviceID == "n613\n" or global::deviceID == "n236\n" or global::deviceID == "n437\n" or global::deviceID == "n306\n" or global::deviceID == "kt\n" or global::deviceID == "emu\n") {
@@ -198,85 +274,24 @@ void iconsSizeSet() {
             stdIconWidth = sW / 19;
             stdIconHeight = sH / 19;
         }
-        QPixmap chargingPixmap(":/resources/battery_charging.png");
-        thiss->scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap fullPixmap(":/resources/battery_full.png");
-        thiss->scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap halfPixmap(":/resources/battery_half.png");
-        thiss->scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-        QPixmap emptyPixmap(":/resources/battery_empty.png");
-        thiss->scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
-    }
-    else {
-        float stdIconWidth = sW / 19;
-        float stdIconHeight = sH / 19;
-        QPixmap chargingPixmap(":/resources/battery_charging.png");
-        thiss->scaledChargingPixmap = chargingPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-        QPixmap fullPixmap(":/resources/battery_full.png");
-        thiss->scaledFullPixmap = fullPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-        QPixmap halfPixmap(":/resources/battery_half.png");
-        thiss->scaledHalfPixmap = halfPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-        QPixmap emptyPixmap(":/resources/battery_empty.png");
-        thiss->scaledEmptyPixmap = emptyPixmap.scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio);
-    }
-}
+        // Memory leak let's go
+        scaledChargingPixmap = new QPixmap(":/resources/battery_charging.png");
+        *scaledChargingPixmap = scaledChargingPixmap->scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        scaledFullPixmap = new QPixmap(":/resources/battery_full.png");
+        *scaledFullPixmap = scaledFullPixmap->scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
-void setFonts() {
-    global::reader::font = readFile(".config/04-book/font");
-    if(global::reader::font == "u001") {
-        ui->fontChooser->setCurrentText("Univers (u001)");
-    }
-    else {
-        ui->fontChooser->setCurrentText(global::reader::font);
-    }
-
-    if(global::deviceID == "n873\n") {
-        ui->nextBtn->setStyleSheet("padding: 13.5px");
-        ui->previousBtn->setStyleSheet("padding: 13.5px");
-        ui->optionsBtn->setStyleSheet("padding: 13.5px");
-    }
-    else if(global::deviceID == "n437\n") {
-        ui->nextBtn->setStyleSheet("padding: 12.5px");
-        ui->previousBtn->setStyleSheet("padding: 12.5px");
-        ui->optionsBtn->setStyleSheet("padding: 12.5px");
-    }
-    else {
-        ui->nextBtn->setStyleSheet("padding: 10px");
-        ui->previousBtn->setStyleSheet("padding: 10px");
-        ui->optionsBtn->setStyleSheet("padding: 10px");
-    }
-    ui->sizeValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
-    ui->lineSpacingValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
-    ui->marginsValueLabel->setStyleSheet("font-size: 9pt; font-weight: bold");
-    ui->homeBtn->setStyleSheet("font-size: 9pt; padding: 5px");
-    ui->fontChooser->setStyleSheet("font-size: 9pt");
-    ui->gotoBtn->setStyleSheet("font-size: 9pt; padding: 9px; font-weight: bold; background: lightGrey");
-    ui->pageNumberLabel->setFont(QFont("Source Serif Pro"));
-    ui->viewHighlightsBtn->setStyleSheet("padding: 9px");
-
-
-    int id = QFontDatabase::addApplicationFont(":/resources/fonts/CrimsonPro-Italic.ttf");
-    QString family = QFontDatabase::applicationFontFamilies(id).at(0);
-    QFont crimson(family);
-    ui->bookInfoLabel->setFont(crimson);
+        scaledHalfPixmap = new QPixmap(":/resources/battery_half.png");
+        *scaledHalfPixmap = scaledHalfPixmap->scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+        scaledEmptyPixmap = new QPixmap(":/resources/battery_empty.png");
+        *scaledEmptyPixmap = scaledEmptyPixmap->scaled(stdIconWidth, stdIconHeight, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 }
 
 void hideThings() {
     // Hiding the menubar + definition widget + brightness widget + buttons bar widget
     ui->menuWidget->setVisible(false);
-    ui->brightnessWidget->setVisible(false);
     ui->menuBarWidget->setVisible(false);
     ui->buttonsBarWidget->setVisible(false);
     ui->pdfScaleWidget->setVisible(false);
-    ui->wordWidget->setVisible(false);
-    if(checkconfig(".config/11-menubar/sticky") == true) {
-        ui->menuWidget->setVisible(true);
-        ui->statusBarWidget->setVisible(true);
-    }
-    else {
-        ui->menuWidget->setVisible(false);
-        ui->statusBarWidget->setVisible(false);
-    }
     ui->pageWidget->hide();
 
     //showTopbarWidget = true;
@@ -340,7 +355,7 @@ void showToast(QString messageToDisplay) {
 
 // 0 left, 1 center, 2 right, 3 justify
 void setAlignment() {
-    int *alignment = &global::toreader::loadedConfig.alignment;
+    int *alignment = &conf->alignment;
     qDebug() << "Setting alignment:" << *alignment;
     if(*alignment == 0) {
         ui->text->setAlignment(Qt::AlignLeft);
@@ -358,17 +373,17 @@ void setAlignment() {
 
 int previousAlignment = -1;
 void setTextStyle(QString* textProvided, bool containsImage) {
-    if(global::toreader::loadedConfig.imageAdjust == true) {
+    if(conf->imageAdjust == true) {
         qDebug() << "Checking for image";
         if(containsImage == true) {
             qDebug() << "Image found";
-            previousAlignment = global::toreader::loadedConfig.alignment;
-            global::toreader::loadedConfig.alignment = 1;
+            previousAlignment = conf->alignment;
+            conf->alignment = 1;
             ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
             ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
         }
         else if(previousAlignment != -1){
-            global::toreader::loadedConfig.alignment = previousAlignment;
+            conf->alignment = previousAlignment;
             previousAlignment = -1;
             ui->text->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
             ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
@@ -376,4 +391,97 @@ void setTextStyle(QString* textProvided, bool containsImage) {
     }
     setAlignment();
 
+}
+
+bool menubarShown = false;
+void openMenu() {
+    if(menubarShown == true) {
+        // Hiding menu bar - style code
+        ui->menuWidget->setVisible(false);
+        if(conf->usesImageEngine == false) {
+            ui->menuBarWidget->setVisible(false);
+        }
+        else {
+            // ?
+            //if(conf->usesImageEngine == true) {
+            ui->pdfScaleWidget->setVisible(false);
+            //}
+            //ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+            //ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        }
+        ui->buttonsBarWidget->setVisible(false);
+        ui->statusBarWidget->setVisible(false);
+        if(conf->isSingleImage == false) {
+            ui->pageWidget->setVisible(false);
+        }
+
+        // End showing options, the rest is for the button
+        if(global::deviceID == "n873\n") {
+            ui->optionsBtn->setStyleSheet("background: white; color: black; padding: 13.5px");
+        }
+        else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
+            ui->optionsBtn->setStyleSheet("background: white; color: black; padding: 12.5px");
+        }
+        else {
+            ui->optionsBtn->setStyleSheet("background: white; color: black; padding: 10px");
+        }
+        ui->optionsBtn->setIcon(QIcon(":/resources/settings.png"));
+        // The Glo HD (N437) has a newer platform plugin that doesn't need this
+        if(global::deviceID != "n437\n" or global::deviceID != "n306\n" or global::deviceID != "n249\n") {
+            QTimer::singleShot(500, thiss, SLOT(repaint()));
+        }
+        menubarShown = false;
+    }
+    else {
+        // Show menu bar
+        if(isUsbPluggedIn() == true) {
+            ui->batteryIconLabel->setPixmap(*scaledChargingPixmap);
+        }
+        else {
+            getBatteryLevel();
+            if(batteryLevelInt >= 75 && batteryLevelInt <= 100) {
+                ui->batteryIconLabel->setPixmap(*scaledFullPixmap);
+            }
+            if(batteryLevelInt >= 25 && batteryLevelInt <= 74) {
+                ui->batteryIconLabel->setPixmap(*scaledHalfPixmap);
+            }
+            if(batteryLevelInt >= 0 && batteryLevelInt <= 24) {
+                ui->batteryIconLabel->setPixmap(*scaledEmptyPixmap);
+            }
+        }
+
+        ui->menuWidget->setVisible(true);
+        if(conf->usesImageEngine == false) {
+            ui->menuBarWidget->setVisible(true);
+        }
+        else {
+            // ?
+            //if(conf->usesImageEngine == true) {
+                ui->pdfScaleWidget->setVisible(true);
+            //}
+            ui->graphicsView->setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+            ui->graphicsView->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
+        }
+        ui->buttonsBarWidget->setVisible(true);
+        ui->statusBarWidget->setVisible(true);
+        if(conf->isSingleImage == true) {
+            ui->pageWidget->setVisible(false);
+        }
+        else {
+            ui->pageWidget->setVisible(true);
+        }
+        // End menu bar show
+        if(global::deviceID == "n873\n") {
+            ui->optionsBtn->setStyleSheet("background: black; color: white; padding: 13.5px");
+        }
+        else if(global::deviceID == "n437\n" or global::deviceID == "n249\n") {
+            ui->optionsBtn->setStyleSheet("background: black; color: white; padding: 12.5px");
+        }
+        else {
+            ui->optionsBtn->setStyleSheet("background: black; color: white; padding: 10px");
+        }
+        ui->optionsBtn->setIcon(QIcon(":/resources/settings-inverted.png"));
+        //thiss->repaint();
+        menubarShown = true;
+    }
 }

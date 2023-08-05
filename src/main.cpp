@@ -24,6 +24,7 @@
 #include "sleepthread.h"
 #include "sleepdialog.h"
 #include "audiothread.h"
+#include "datastreams.h"
 
 #include <QApplication>
 #include <QFile>
@@ -35,6 +36,7 @@
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
+    declareMetaTypes();
     QTextCodec::setCodecForLocale(QTextCodec::codecForName("utf8"));
 
     if(char * debug = std::getenv("DEBUG")) {

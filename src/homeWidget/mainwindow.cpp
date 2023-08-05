@@ -941,7 +941,7 @@ void MainWindow::openBookFile(QString book, bool relativePath) {
 
 void MainWindow::openReaderFramework() {
     log("Launching Reader Framework ( toreader )", className);
-    readerWindow = new toreader();
+    readerWindow = new toreader(); // Interesting, no parent here!
     readerWindow->setAttribute(Qt::WA_DeleteOnClose);
     readerWindow->showFullScreen();
 }

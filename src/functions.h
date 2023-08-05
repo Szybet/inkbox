@@ -57,29 +57,35 @@ namespace global {
         inline QString currentViewportText;
     }
     namespace toreader {
+    // No txt, we want them as epubs
+        inline const QVector<QString> supportedFormats = {"epub", "pdf"}; // More to come?
+        inline const QVector<QString> supportedFormatsImages = {"png", "jpg", "jpeg", "bmp", "tif"};
         // This starts from 0
         inline QVector<QByteArray*> pages; // Pluses to this: we don't place data in vector, so it won't be shifted, just places somewhere else. Clean this at exit
         // Yes, QByteArray is a pointer to some data
         inline QString filePath; // We need to know from where to load this config
+        inline QString configFilePath;
         // The `config` name is reserved? idk
         // Slow variables mean that if enabled, they will be executed in another thread, so non blocking. But it will take more time and not be available
         struct toreaderConfig {
             int savedPage = 1;
-            QString format; // For now possible values: pdf, epub, txt, image ( yes any image )
-            QFont font;
+            QString format = ""; // For now possible values: pdf, epub, txt, image ( yes any image )
+            bool usesImageEngine = false;
+            bool isSingleImage = false;
+            QFont font = QFont("Source Serif Pro, 9"); // Default font, I think
             int fontSize = 9; // It's the same as for QFont just easier to access
             int lineSpacing = 1;
-            QVector<int> margins; // Starting from left clockwise: left, top, right, bottom
+            QVector<int> margins = {9, 9, 9, 9}; // Starting from left clockwise: left, top, right, bottom - This is for the text
             int alignment = 0; // 0 left, 1 center, 2 right, 3 justify
-            int brightness;
-            int brightnessWarmth;
-            int width;
-            int height;
-            bool highlighting;
-            bool loadHighlightsSlow;
+            int brightness = 40;
+            int brightnessWarmth = 40;
+            int width = 280;
+            int height = 280;
+            bool highlighting = true;
+            bool loadHighlightsSlow = false;
             int progress = -1; // %
             int pagesCount = -1;
-            bool pageCountSlow;
+            bool pagesCountSlow = false;
             int preCachedPages = 3;
             bool imageAdjust = true; // If a page containsimages, center the whole page, text too for now - and enable scroll bars just to be sure
             bool skipEmptyPages = true; // Because cool epubs and their formatting
@@ -89,9 +95,31 @@ namespace global {
             - gestures
             Both can have additionall info ( small battery and time ), and a progress bar at the bottom ( a small one )
             */
-            bool buttonsEnabled = false;
+            bool buttonsEnabled = true;
             bool additionallInfo = true;
         };
+        /*
+        Values that are editable in the reader on the go:
+        font ( as font dialog ) - button, launched font dialog
+        font size obviously - managed by above
+        line spacing - slider
+        margins - button ( a dialog will appear )
+        alignment - those 4 buttons
+        brightness - slider ( i know how to make the "left" part of the slider black too )
+        warmth too - slider
+        Options - button
+        + calibration button
+
+        Values that are editable in settings ( so in reader, as a smaller popup dialog ) well the rest:
+        width
+        height
+        highlighting
+        highlighting load slow
+        pages count slow
+        image adjust
+        skip empty pages
+        buttonsEnabled - checkbox
+        */
         inline global::toreader::toreaderConfig loadedConfig;
     }
     namespace kobox {

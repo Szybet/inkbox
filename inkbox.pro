@@ -26,6 +26,7 @@ DEFINES += GIT_COMMIT=\\\"$$GIT_COMMIT\\\"
 SOURCES += \
     src/apps/todo.cpp \
     src/audio/audiothread.cpp \
+    src/datastreams.cpp \
     src/toreader/calibrate.cpp \
     src/toreader/mupdfCaller.cpp \
     src/toreader/toreader.cpp \
@@ -80,6 +81,7 @@ SOURCES += \
 HEADERS += \
     src/audio/audiothread.h \
     src/apps/todo.h \
+    src/datastreams.h \
     src/toreader/calibrate.h \
     src/toreader/mupdfCaller.h \
     src/toreader/toreader.h \
