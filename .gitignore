@@ -10,3 +10,6 @@ deploy.sh
 exec
 .qtc_clangd
 build/
+
+# For faster git operations
+libs/mupdf/mupdf

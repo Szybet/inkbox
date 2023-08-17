@@ -22,10 +22,16 @@ public:
 
     void nextPage();
     void previousPage();
+    void setOnlyStyle();
+
+    QString selectedText;
 
 public slots:
     void receivedPage(QByteArray* data);
     void launchCalibrate(); // test?
+    void highlightFunc();
+    void unsetTextDialogLock();
+    void highlightText();
 
 signals:
     void init(QString format);
@@ -37,10 +43,15 @@ private slots:
 
     void on_optionsBtn_clicked();
 
+    void on_fontBtn_clicked();
+
+    void on_text_selectionChanged();
+
 private:
     Ui::toreader *ui;
     QThread *RequestThread;
     toreaderThread *toreaderThreadClass;
+    QTimer *highlightTimer;
 };
 
 #endif // TOREADER_H

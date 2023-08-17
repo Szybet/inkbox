@@ -6,7 +6,9 @@
 #include "libreader-rs.h"
 #include "mupdfCaller.h"
 #include "calibrate.h" // Ignore this error of redefinition lol
+#include "textdialog.h"
 
+#include <QFontDialog>
 #include <QWidget>
 #include <QGraphicsScene>
 #include <QFontDatabase>
@@ -73,8 +75,13 @@ toreader::toreader(QWidget *parent) :
     // TODO
     ui->graphicsView->hide();
 
-
     ui->text->setWordWrapMode(QTextOption::NoWrap); // MuTool wraps words, and we trust it
+
+    // Init some things
+    highlightTimer = new QTimer(this);
+    t->setInterval(100);
+    connect(highlightTimer, &QTimer::timeout, this, &toreader::highlightFunc);
+
 }
 
 toreader::~toreader()
@@ -83,11 +90,11 @@ toreader::~toreader()
 }
 
 bool wasNextAsReason = true; // Default because for page 1 at fresh start
+bool containsImage = false; // This can be used from other functions...
 void toreader::setText(QString textProvided) {
     //log("Pure HTML code: \n" + htmlCode + "\n", className);
 
     // TODO: we dont request first page yet so... yea it won't work always???
-    bool containsImage = false;
     if(conf->imageAdjust == true || conf->skipEmptyPages == true) {
         containsImage = textProvided.contains("<img style=");
     }
@@ -131,6 +138,7 @@ void toreader::setText(QString textProvided) {
 
     ui->text->setHtml(textProvided);
     setTextStyle(&textProvided, containsImage);
+    writeFile("/tmp/mupdf_test_final2.html", textProvided);
 
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     qDebug() << "Setted text";
@@ -185,3 +193,72 @@ void toreader::on_optionsBtn_clicked()
     openMenu();
 }
 
+void toreader::setOnlyStyle() {
+    // I need in rust to remove whole span style because of font, sad
+    emit requestPage(conf->savedPage);
+    return;
+    QString text = ui->text->toHtml();
+    setTextStyle(&text, containsImage);
+    if(text != ui->text->toHtml()) {
+        ui->text->setHtml(text);
+        setTextStyle(&text, containsImage);
+    }
+    QCoreApplication::processEvents(QEventLoop::AllEvents);
+}
+
+void toreader::on_fontBtn_clicked()
+{
+    QFontDialog* dialog = new QFontDialog(this);
+
+    dialog->show();
+    dialog->move(0, 0);
+
+    // App wide option for this would be also `cool`
+    QRect screenGeometry = QGuiApplication::screens()[0]->geometry();
+    dialog->setFixedSize(screenGeometry.width(), screenGeometry.height());
+    dialog->setFont(conf->font);
+    QFont previousFont = conf->font;
+    int result = dialog->exec();
+
+    if(result == QDialog::Accepted) {
+        conf->font = dialog->selectedFont();
+        conf->fontSize = conf->font.pointSize();
+        qDebug() << "New current font:" << conf->font;
+        qDebug() << "New current font size:" << conf->fontSize;
+        if(previousFont != conf->font) {
+            setOnlyStyle();
+        }
+    }
+}
+
+void toreader::on_text_selectionChanged()
+{
+    highlightTimer->stop();
+    highlightTimer->start();
+}
+
+void toreader::highlightFunc() {
+    QTextCursor cursor = ui->text->textCursor();
+    selectedText = cursor.selectedText();
+    // Highlight
+    // TODO: deselect / remove highlight support
+
+    textDialog* textDialogWindow = new textDialog(this);
+    QObject::connect(textDialogWindow, &textDialog::destroyed, this, &toreader::unsetTextDialogLock);
+    QObject::connect(textDialogWindow, &textDialog::highlightText, this, &toreader::highlightText);
+    //QObject::connect(textDialogWindow, &textDialog::unhighlightText, this, &toreader::unhighlightText);
+    textDialogWindow->move(mapFromGlobal(ui->text->cursorRect().bottomRight()));
+    textDialogWindow->show();
+}
+
+void toreader::unsetTextDialogLock() {
+    QTextCursor cursor = ui->text->textCursor();
+    cursor.clearSelection();
+    ui->text->setTextCursor(cursor);
+}
+
+void toreader::highlightText() {
+    qDebug() << "Highlighting text" << selectedText;
+    //highlightBookText(selected_text, book_file, false);
+    //setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
+}

@@ -373,6 +373,7 @@ void setAlignment() {
 
 int previousAlignment = -1;
 void setTextStyle(QString* textProvided, bool containsImage) {
+    qDebug() << "Setting style";
     if(conf->imageAdjust == true) {
         qDebug() << "Checking for image";
         if(containsImage == true) {
@@ -390,7 +391,7 @@ void setTextStyle(QString* textProvided, bool containsImage) {
         }
     }
     setAlignment();
-
+    ui->text->setFont(conf->font);
 }
 
 bool menubarShown = false;

@@ -5,6 +5,7 @@ greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 CONFIG += c++11 c++17
 
 QMAKE_CXXFLAGS += -Wno-unused-function -Wno-unused-parameter
+QMAKE_CFLAGS += -lrt
 
 # Thanks to https://github.com/mrbindraw/TestVersion/blob/master/TestVersion.pro
 GIT_VERSION = $$system(git describe --always --tags)

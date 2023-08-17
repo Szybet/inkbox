@@ -6,6 +6,8 @@ textDialog::textDialog(QWidget *parent) :
     ui(new Ui::textDialog)
 {
     ui->setupUi(this);
+    this->setAttribute(Qt::WA_DeleteOnClose);
+    this->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
     ui->highlightBtn->setProperty("type", "borderless");
     if(global::reader::highlightAlreadyDone == true) {
         global::reader::highlightAlreadyDone = false;
