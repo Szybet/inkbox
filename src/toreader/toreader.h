@@ -25,6 +25,7 @@ public:
     void setOnlyStyle();
 
     QString selectedText;
+    QMutex highlightControl;
 
 public slots:
     void receivedPage(QByteArray* data);
@@ -32,6 +33,7 @@ public slots:
     void highlightFunc();
     void unsetTextDialogLock();
     void highlightText();
+    void highlightDelay();
 
 signals:
     void init(QString format);

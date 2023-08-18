@@ -24,5 +24,6 @@ void showToast(QString messageToDisplay);
 void setTextStyle(QString* textProvided, bool containsImage);
 void setAlignment(); // 0 left, 1 center, 2 right, 3 justify
 void openMenu();
+void repairSelection(); // Select only whole words
 
 #endif // TOREADERFUNCTIONS_H

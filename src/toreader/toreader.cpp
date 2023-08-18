@@ -79,9 +79,9 @@ toreader::toreader(QWidget *parent) :
 
     // Init some things
     highlightTimer = new QTimer(this);
-    t->setInterval(100);
+    highlightTimer->setInterval(500);
+    highlightTimer->setSingleShot(true);
     connect(highlightTimer, &QTimer::timeout, this, &toreader::highlightFunc);
-
 }
 
 toreader::~toreader()
@@ -233,11 +233,24 @@ void toreader::on_fontBtn_clicked()
 
 void toreader::on_text_selectionChanged()
 {
-    highlightTimer->stop();
-    highlightTimer->start();
+    qDebug() << "Selection changed";
+    // I would want a isLocked function...
+    if(highlightControl.tryLock()) {
+        highlightControl.unlock();
+        highlightTimer->stop();
+        highlightTimer->start();
+    }
 }
 
 void toreader::highlightFunc() {
+    qDebug() << "highlightFunc called";
+    if(highlightControl.tryLock() == false) {
+        return;
+    }
+    qDebug() << "highlightFunc continue";
+
+    repairSelection();
+
     QTextCursor cursor = ui->text->textCursor();
     selectedText = cursor.selectedText();
     // Highlight
@@ -247,18 +260,33 @@ void toreader::highlightFunc() {
     QObject::connect(textDialogWindow, &textDialog::destroyed, this, &toreader::unsetTextDialogLock);
     QObject::connect(textDialogWindow, &textDialog::highlightText, this, &toreader::highlightText);
     //QObject::connect(textDialogWindow, &textDialog::unhighlightText, this, &toreader::unhighlightText);
-    textDialogWindow->move(mapFromGlobal(ui->text->cursorRect().bottomRight()));
+    QPoint pos = ui->text->cursorRect().bottomRight();
+    // Shift it to not hide the text
+    pos.setX(pos.x() + 30);
+    pos.setY(pos.y() + 30);
+
+    textDialogWindow->move(mapFromGlobal(pos));
     textDialogWindow->show();
 }
 
 void toreader::unsetTextDialogLock() {
+    qDebug() << "unsetTextDialogLock called";
     QTextCursor cursor = ui->text->textCursor();
     cursor.clearSelection();
     ui->text->setTextCursor(cursor);
+    highlightDelay();
 }
 
 void toreader::highlightText() {
     qDebug() << "Highlighting text" << selectedText;
     //highlightBookText(selected_text, book_file, false);
     //setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
+    highlightDelay();
+}
+
+void toreader::highlightDelay() {
+    QTimer::singleShot(300, this, [this] () {
+        qDebug() << "Unlocked highlight";
+        highlightControl.unlock();
+    });
 }

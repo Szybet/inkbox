@@ -486,3 +486,66 @@ void openMenu() {
         menubarShown = true;
     }
 }
+
+void repairSelection() {
+    qDebug() << "repairSelection called";
+    QTextCursor cursor = ui->text->textCursor();
+    QString text = ui->text->toPlainText();
+    int length = ui->text->toPlainText().length();
+    int positionStart = cursor.selectionStart();
+    int positionEnd = cursor.selectionEnd();
+    bool startDone = false;
+    bool endDone = false;
+    qDebug() << "The text:" << text;
+    while(true) {
+        if(startDone == false) {
+            if(positionStart >= 0) {
+                qDebug() << "The char for start is:" << text[positionStart] << "At position" << positionStart;
+                if(text[positionStart] == ' ' || text[positionStart] == '\n') {
+                    startDone = true;
+                }
+                else {
+                    positionStart = positionStart - 1;
+                }
+            }
+            else {
+                startDone = true;
+            }
+        }
+
+        if(endDone == false) {
+            if(positionEnd < length) {
+                qDebug() << "The char for end is:" << text[positionEnd] << "At position" << positionEnd;
+                if(text[positionEnd] == ' ' || text[positionEnd] == '\n') {
+                    endDone = true;
+                }
+                else {
+                    positionEnd = positionEnd + 1;
+                }
+            }
+            else {
+                endDone = true;
+            }
+        }
+
+        if(endDone == true && startDone == true) {
+            break;
+        }
+    }
+
+    //positionEnd = positionEnd - 1; // Idk?...
+    positionStart = positionStart + 1;
+
+    cursor.clearSelection();
+    cursor.setPosition(positionStart);
+    cursor.setPosition(positionEnd, QTextCursor::KeepAnchor);
+    //cursor.movePosition(positionEnd, QTextCursor::MoveAnchor);
+
+    // Doesn't work and is a mess
+    /*
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::PreviousWord, QTextCursor::KeepAnchor);
+    cursor.endEditBlock();
+    */
+    ui->text->setTextCursor(cursor);
+}
