@@ -24,7 +24,6 @@ public:
     void previousPage();
     void setOnlyStyle();
 
-    QString selectedText;
     QMutex highlightControl;
 
 public slots:
@@ -35,6 +34,11 @@ public slots:
     void highlightText();
     void highlightDelay();
     void repairSelection(int addLeft = 0, int addRight = 0); // Select only whole words
+    void highlightTextSlot();
+    void translateTextSlot();
+    void showToastSlot(QString text);
+    QVector<QString> getNormalHighlights();
+    QString convertToRustHighlights(QVector<QString> highlights);
 
 signals:
     void init(QString format);
@@ -49,6 +53,8 @@ private slots:
     void on_fontBtn_clicked();
 
     void on_text_selectionChanged();
+
+    void on_viewHighlightsBtn_clicked();
 
 private:
     Ui::toreader *ui;

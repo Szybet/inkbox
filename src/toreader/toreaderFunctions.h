@@ -24,5 +24,6 @@ void showToast(QString messageToDisplay);
 void setTextStyle(QString* textProvided, bool containsImage);
 void setAlignment(); // 0 left, 1 center, 2 right, 3 justify
 void openMenu();
+QString getPageSlowSafe(int page);
 
 #endif // TOREADERFUNCTIONS_H

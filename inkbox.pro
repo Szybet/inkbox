@@ -128,6 +128,7 @@ HEADERS += \
     src/widgets/interfaceWidgets/toast.h \
     src/splash/usbmsSplash.h \
     src/apps/userapps.h \
+    src/widgets/toreader/MouseClickEventFilter.h \
     src/widgets/toreader/highlightDialog.h \
     src/widgets/virtualKeyboard/virtualkeyboard.h \
     src/widgets/virtualKeyboard/virtualkeypad.h \

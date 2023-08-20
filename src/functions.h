@@ -63,7 +63,7 @@ namespace global {
         // This starts from 0
         inline QVector<QByteArray*> pages; // Pluses to this: we don't place data in vector, so it won't be shifted, just places somewhere else. Clean this at exit
         // Yes, QByteArray is a pointer to some data
-        inline QString filePath; // We need to know from where to load this config
+        inline QString filePath; // We need to know from where to load this config, so this is the path to the real book
         inline QString configFilePath;
         // The `config` name is reserved? idk
         // Slow variables mean that if enabled, they will be executed in another thread, so non blocking. But it will take more time and not be available
@@ -87,7 +87,7 @@ namespace global {
             int pagesCount = -1;
             bool pagesCountSlow = false;
             int preCachedPages = 3;
-            bool imageAdjust = true; // If a page containsimages, center the whole page, text too for now - and enable scroll bars just to be sure
+            bool imageAdjust = true; // If a page containsimages, center the whole page, text too for now - and enable scroll bars just to be sure and TODO: disable highlights, they take too long to do anything and yea
             bool skipEmptyPages = true; // Because cool epubs and their formatting
             /*
             2 modes for swaping pages:

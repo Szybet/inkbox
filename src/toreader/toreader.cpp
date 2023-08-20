@@ -8,6 +8,7 @@
 #include "calibrate.h" // Ignore this error of redefinition lol
 #include "textdialog.h"
 #include "highlightDialog.h"
+#include "highlightslistdialog.h""
 
 #include <QFontDialog>
 #include <QWidget>
@@ -92,13 +93,12 @@ toreader::~toreader()
 
 bool wasNextAsReason = true; // Default because for page 1 at fresh start
 bool containsImage = false; // This can be used from other functions...
+// Order is very important in this function
 void toreader::setText(QString textProvided) {
     //log("Pure HTML code: \n" + htmlCode + "\n", className);
 
     // TODO: we dont request first page yet so... yea it won't work always???
-    if(conf->imageAdjust == true || conf->skipEmptyPages == true) {
-        containsImage = textProvided.contains("<img style=");
-    }
+    containsImage = textProvided.contains("<img style="); // Needed by highlighting
     if(conf->skipEmptyPages == true) {
         bool skipPage = !containsImage;
         if(containsImage == false) {
@@ -135,7 +135,30 @@ void toreader::setText(QString textProvided) {
 
     writeFile("/tmp/mupdf_test_final.html", textProvided);
     // Yea i got problems with that too, needed logs
-    qDebug() << "Setting text";
+
+    // Highlights
+    // TODO: image + highlight support?
+    if(containsImage == false) {
+        //if(conf->loadHighlightsSlow == false) // And if they are enabled at all?
+        QVector<QString> highlightList = getNormalHighlights();
+        QString highlistsNative = convertToRustHighlights(highlightList);
+        qDebug() << "The highlightList:" << highlightList;
+        qDebug() << "Setting text";
+
+        QString previousPage = getPageSlowSafe(conf->savedPage - 1);
+        QString nextPage = getPageSlowSafe(conf->savedPage + 1);
+
+        // No images for now
+        if(previousPage.contains("<img style=")) {
+            previousPage = "";
+        }
+        if(nextPage.contains("<img style=")) {
+            nextPage = "";
+        }
+
+        const char* highlightedText = highlight_page_c(textProvided.toStdString().c_str(), previousPage.toStdString().c_str(), nextPage.toStdString().c_str(), highlistsNative.toStdString().c_str());
+        textProvided = QString::fromStdString(highlightedText);
+    }
 
     ui->text->setHtml(textProvided);
     setTextStyle(&textProvided, containsImage);
@@ -195,6 +218,7 @@ void toreader::on_optionsBtn_clicked()
 }
 
 void toreader::setOnlyStyle() {
+    // TODO???
     // I need in rust to remove whole span style because of font, sad
     emit requestPage(conf->savedPage);
     return;
@@ -252,8 +276,6 @@ void toreader::highlightFunc() {
 
     repairSelection();
 
-    QTextCursor cursor = ui->text->textCursor();
-    selectedText = cursor.selectedText();
     // Highlight
     // TODO: deselect / remove highlight support
 
@@ -275,16 +297,12 @@ void toreader::unsetTextDialogLock() {
     // I miss is locked function
     if(highlightOngoing.tryLock()) {
         qDebug() << "unsetTextDialogLock called";
-        QTextCursor cursor = ui->text->textCursor();
-        cursor.clearSelection();
-        ui->text->setTextCursor(cursor);
         highlightDelay();
     }
 }
 
 void toreader::highlightText() {
     highlightOngoing.lock();
-    qDebug() << "Highlighting text" << selectedText;
     //Qt::TextEditorInteraction
     //Qt::NoTextInteraction
     ui->text->setTextInteractionFlags(Qt::NoTextInteraction); // wow it works as intended!
@@ -295,6 +313,8 @@ void toreader::highlightText() {
     highlightDialog* dialog = new highlightDialog(this);
     connect(dialog, &highlightDialog::moveHighlight, this, &toreader::repairSelection);
     connect(dialog, &highlightDialog::destroyed, this, &toreader::highlightDelay);
+    connect(dialog, &highlightDialog::highlightText, this, &toreader::highlightTextSlot);
+    connect(dialog, &highlightDialog::translateText, this, &toreader::translateTextSlot);
     // welp
     int width = QGuiApplication::screens()[0]->size().width();
     int height = QGuiApplication::screens()[0]->size().height();
@@ -308,6 +328,9 @@ void toreader::highlightDelay() {
     QTimer::singleShot(300, this, [this] () {
         qDebug() << "Unlocked highlight";
         ui->text->setTextInteractionFlags(Qt::TextEditorInteraction);
+        QTextCursor cursor = ui->text->textCursor();
+        cursor.clearSelection();
+        ui->text->setTextCursor(cursor);
         highlightControl.unlock();
         highlightOngoing.unlock();
     });
@@ -386,4 +409,68 @@ void toreader::repairSelection(int addLeft, int addRight) {
     cursor.endEditBlock();
     */
     ui->text->setTextCursor(cursor);
+}
+
+void toreader::highlightTextSlot() {
+    qDebug() << "Highlighting text was requested";
+    QTextCursor cursor = ui->text->textCursor();
+    QString selectedText = cursor.selectedText();
+    highlightBookText(selectedText, global::toreader::filePath, false);
+}
+
+void toreader::translateTextSlot() {
+
+}
+
+void toreader::on_viewHighlightsBtn_clicked()
+{
+    qDebug() << "Launching highlights list dialog for book " + global::toreader::filePath;
+    QJsonObject jsonObject = getHighlightsForBook(global::toreader::filePath);
+    if(jsonObject.isEmpty() or jsonObject.length() <= 1) {
+        global::toast::delay = 3000;
+        showToast("No highlights for this book");
+    }
+    else {
+        // This is awfull
+        global::highlightsListDialog::bookPath = global::toreader::filePath;
+        highlightsListDialog * highlightsListDialogWindow = new highlightsListDialog(this);
+        // TODO: reflow page on exit
+        connect(highlightsListDialogWindow, &highlightsListDialog::showToast, this, &toreader::showToastSlot);
+        highlightsListDialogWindow->setAttribute(Qt::WA_DeleteOnClose);
+    }
+}
+
+void toreader::showToastSlot(QString text) {
+    showToast(text);
+}
+
+QVector<QString> toreader::getNormalHighlights() {
+    QVector<QString> vec;
+    QJsonObject jsonObject = getHighlightsForBook(global::toreader::filePath);
+    int keyCount = 1;
+    foreach(const QString& key, jsonObject.keys()) {
+        if(keyCount <= 1) {
+            keyCount++;
+            continue;
+        }
+        else {
+            QString highlight = jsonObject.value(key).toString();
+            vec.push_back(highlight);
+        }
+        keyCount++;
+    }
+    return vec;
+}
+
+QString toreader::convertToRustHighlights(QVector<QString> highlights) {
+    QString finalStr;
+    QString joinStr = "U+001F";
+    for(int i = 0; i < highlights.length(); i++) {
+        finalStr.push_back(highlights[i]);
+        if(i != highlights.length() - 1) {
+            finalStr.push_back(joinStr);
+        }
+    }
+    qDebug() << "Final str highlights:" << finalStr;
+    return finalStr;
 }

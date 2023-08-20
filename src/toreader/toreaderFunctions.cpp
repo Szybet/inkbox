@@ -3,6 +3,7 @@
 #include "toreader.h"
 #include "QScreen"
 #include "toast.h"
+#include "mupdfCaller.h"
 
 #include <QSettings>
 #include <QFontDatabase>
@@ -484,5 +485,19 @@ void openMenu() {
         ui->optionsBtn->setIcon(QIcon(":/resources/settings-inverted.png"));
         //thiss->repaint();
         menubarShown = true;
+    }
+}
+
+QString getPageSlowSafe(int page) {
+    if(page < 0 || page > global::toreader::loadedConfig.savedPage) {
+        return "";
+    }
+    if(global::toreader::pages[page]->isNull()) {
+        QByteArray* data = getPageData(page);
+        global::toreader::pages[page] = data;
+        return QString::fromUtf8(*data);
+    }
+    else {
+        return QString::fromUtf8(*global::toreader::pages[page]);
     }
 }

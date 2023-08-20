@@ -1,13 +1,16 @@
 #include "highlightDialog.h"
 #include "qdebug.h"
+#include "qevent.h"
 #include "qtimer.h"
 #include "ui_highlightDialog.h"
+#include "MouseClickEventFilter.h"
 
 highlightDialog::highlightDialog(QWidget *parent) :
     QDialog(parent),
     ui(new Ui::highlightDialog)
 {
     ui->setupUi(this);
+    this->setAttribute(Qt::WA_DeleteOnClose);
 
     ui->addLeftButton->setIcon(QIcon("://resources/chevron-left.png"));
     ui->addRightButton->setIcon(QIcon("://resources/chevron-right.png"));
@@ -26,10 +29,9 @@ highlightDialog::highlightDialog(QWidget *parent) :
     ui->remLeftButton->setProperty("type", "borderless");
     ui->remRightButton->setProperty("type", "borderless");
 
-    touchTimer = new QTimer(this);
-    touchTimer->setInterval(300);
-    connect(touchTimer, &QTimer::timeout, this, &highlightDialog::shutdownCheck);
-    touchTimer->start();
+    mouseClickFilter = new MouseClickEventFilter(this->parentWidget());
+    this->parentWidget()->installEventFilter(mouseClickFilter);
+    connect(mouseClickFilter, &MouseClickEventFilter::Clicked, this, &highlightDialog::shutdownCheck);
 }
 
 highlightDialog::~highlightDialog()
@@ -54,14 +56,32 @@ void highlightDialog::on_remLeftButton_clicked()
     emit moveHighlight(2, 0);
 }
 
-
 void highlightDialog::on_remRightButton_clicked()
 {
     emit moveHighlight(0, -2);
 }
 
-// Note: Obtaining the value of this property for a widget is effectively equivalent to checking whether QApplication::focusWidget() refers to the widget.
-void highlightDialog::shutdownCheck() {
-    QPoint globalCursorPos = this->keyboardGrabber(); // is he parent? idk... filter if this wont work
-    qDebug() << "Has this dialog focus?" << globalCursorPos;
+void highlightDialog::shutdownCheck(QPoint pos) {
+    end();
+}
+
+void highlightDialog::on_highlightButton_clicked()
+{
+    emit highlightText();
+    QApplication::processEvents();
+    end();
+}
+
+
+void highlightDialog::on_translateButton_clicked()
+{
+    emit translateText();
+    QApplication::processEvents();
+    end();
+}
+
+void highlightDialog::end() {
+    this->parentWidget()->removeEventFilter(mouseClickFilter);
+    mouseClickFilter->deleteLater();
+    this->close();
 }
