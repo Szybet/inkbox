@@ -1726,7 +1726,6 @@ void reader::on_text_selectionChanged() {
                 textDialog * textDialogWindow = new textDialog(this);
                 QObject::connect(textDialogWindow, &textDialog::destroyed, this, &reader::unsetTextDialogLock);
                 QObject::connect(textDialogWindow, &textDialog::highlightText, this, &reader::highlightText);
-                QObject::connect(textDialogWindow, &textDialog::unhighlightText, this, &reader::unhighlightText);
                 textDialogWindow->setAttribute(Qt::WA_DeleteOnClose);
                 textDialogWindow->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
                 textDialogWindow->move(mapFromGlobal(ui->text->cursorRect().bottomRight()));

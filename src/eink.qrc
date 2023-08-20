@@ -122,5 +122,6 @@
         <file>resources/font.png</file>
         <file>resources/margins.png</file>
         <file>resources/calibration.png</file>
+        <file>resources/translate.svg</file>
     </qresource>
 </RCC>

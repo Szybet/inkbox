@@ -34,6 +34,7 @@ public slots:
     void unsetTextDialogLock();
     void highlightText();
     void highlightDelay();
+    void repairSelection(int addLeft = 0, int addRight = 0); // Select only whole words
 
 signals:
     void init(QString format);

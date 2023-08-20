@@ -72,6 +72,7 @@ SOURCES += \
     src/widgets/interfaceWidgets/toast.cpp \
     src/splash/usbmsSplash.cpp \
     src/apps/userapps.cpp \
+    src/widgets/toreader/highlightDialog.cpp \
     src/widgets/virtualKeyboard/virtualkeyboard.cpp \
     src/widgets/virtualKeyboard/virtualkeypad.cpp \
     src/widgets/dialogs/wifi/wifidialog.cpp \
@@ -127,6 +128,7 @@ HEADERS += \
     src/widgets/interfaceWidgets/toast.h \
     src/splash/usbmsSplash.h \
     src/apps/userapps.h \
+    src/widgets/toreader/highlightDialog.h \
     src/widgets/virtualKeyboard/virtualkeyboard.h \
     src/widgets/virtualKeyboard/virtualkeypad.h \
     src/widgets/dialogs/wifi/wifidialog.h \
@@ -173,6 +175,7 @@ FORMS += \
     src/widgets/interfaceWidgets/toast.ui \
     src/splash/usbmsSplash.ui \
     src/apps/userapps.ui \
+    src/widgets/toreader/highlightDialog.ui \
     src/widgets/virtualKeyboard/virtualkeyboard.ui \
     src/widgets/virtualKeyboard/virtualkeypad.ui \
     src/widgets/dialogs/wifi/wifidialog.ui \

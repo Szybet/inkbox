@@ -9,15 +9,7 @@ textDialog::textDialog(QWidget *parent) :
     this->setAttribute(Qt::WA_DeleteOnClose);
     this->setWindowFlags(Qt::FramelessWindowHint | Qt::Popup);
     ui->highlightBtn->setProperty("type", "borderless");
-    if(global::reader::highlightAlreadyDone == true) {
-        global::reader::highlightAlreadyDone = false;
-        highlightAlreadyDone = true;
-        ui->highlightBtn->setIcon(QIcon(":/resources/unhighlight.png"));
-    }
-    else {
-        highlightAlreadyDone = false;
-        ui->highlightBtn->setIcon(QIcon(":/resources/highlight.png"));
-    }
+    ui->highlightBtn->setIcon(QIcon("://resources/apps.png"));
     this->adjustSize();
 }
 
@@ -28,11 +20,8 @@ textDialog::~textDialog()
 
 void textDialog::on_highlightBtn_clicked()
 {
-    if(highlightAlreadyDone == true) {
-        emit unhighlightText();
-    }
-    else {
-        emit highlightText();
-    }
-    textDialog::close();
+    emit highlightText();
+    // Make sure the signal is delivered
+    QApplication::processEvents();
+    this->close();
 }

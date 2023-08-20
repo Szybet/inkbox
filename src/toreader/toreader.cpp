@@ -7,6 +7,7 @@
 #include "mupdfCaller.h"
 #include "calibrate.h" // Ignore this error of redefinition lol
 #include "textdialog.h"
+#include "highlightDialog.h"
 
 #include <QFontDialog>
 #include <QWidget>
@@ -269,24 +270,120 @@ void toreader::highlightFunc() {
     textDialogWindow->show();
 }
 
+QMutex highlightOngoing;
 void toreader::unsetTextDialogLock() {
-    qDebug() << "unsetTextDialogLock called";
-    QTextCursor cursor = ui->text->textCursor();
-    cursor.clearSelection();
-    ui->text->setTextCursor(cursor);
-    highlightDelay();
+    // I miss is locked function
+    if(highlightOngoing.tryLock()) {
+        qDebug() << "unsetTextDialogLock called";
+        QTextCursor cursor = ui->text->textCursor();
+        cursor.clearSelection();
+        ui->text->setTextCursor(cursor);
+        highlightDelay();
+    }
 }
 
 void toreader::highlightText() {
+    highlightOngoing.lock();
     qDebug() << "Highlighting text" << selectedText;
+    //Qt::TextEditorInteraction
+    //Qt::NoTextInteraction
+    ui->text->setTextInteractionFlags(Qt::NoTextInteraction); // wow it works as intended!
+
     //highlightBookText(selected_text, book_file, false);
     //setTextProperties(global::reader::textAlignment, global::reader::lineSpacing, global::reader::margins, global::reader::font, global::reader::fontSize);
-    highlightDelay();
+
+    highlightDialog* dialog = new highlightDialog(this);
+    connect(dialog, &highlightDialog::moveHighlight, this, &toreader::repairSelection);
+    connect(dialog, &highlightDialog::destroyed, this, &toreader::highlightDelay);
+    // welp
+    int width = QGuiApplication::screens()[0]->size().width();
+    int height = QGuiApplication::screens()[0]->size().height();
+    int factor = 5;
+    dialog->setFixedSize(QSize(width, height / factor));
+    dialog->move(0, height - height / factor);
+    dialog->show();
 }
 
 void toreader::highlightDelay() {
     QTimer::singleShot(300, this, [this] () {
         qDebug() << "Unlocked highlight";
+        ui->text->setTextInteractionFlags(Qt::TextEditorInteraction);
         highlightControl.unlock();
+        highlightOngoing.unlock();
     });
+}
+
+void toreader::repairSelection(int addLeft, int addRight) {
+    qDebug() << "repairSelection called";
+    QTextCursor cursor = ui->text->textCursor();
+    QString text = ui->text->toPlainText();
+    int length = ui->text->toPlainText().length();
+    int positionStart = cursor.selectionStart();
+    positionStart = positionStart + addLeft;
+    int positionEnd = cursor.selectionEnd();
+    positionEnd = positionEnd + addRight;
+    bool startDone = false;
+    bool endDone = false;
+    qDebug() << "The text:" << text;
+    while(true) {
+        if(startDone == false) {
+            if(positionStart >= 0 && positionStart < length) {
+                qDebug() << "The char for start is:" << text[positionStart] << "At position" << positionStart;
+                if(text[positionStart] == ' ' || text[positionStart] == '\n') {
+                    startDone = true;
+                }
+                else {
+                    if(addLeft > 0) {
+                        positionStart = positionStart + 1;
+                    }
+                    else {
+                        positionStart = positionStart - 1;
+                    }
+                }
+            }
+            else {
+                startDone = true;
+            }
+        }
+
+        if(endDone == false) {
+            if(positionEnd >= 0 && positionEnd < length) {
+                qDebug() << "The char for end is:" << text[positionEnd] << "At position" << positionEnd;
+                if(text[positionEnd] == ' ' || text[positionEnd] == '\n') {
+                    endDone = true;
+                }
+                else {
+                    if(addRight >= 0) {
+                        positionEnd = positionEnd + 1;
+                    }
+                    else {
+                        positionEnd = positionEnd - 1;
+                    }
+                }
+            }
+            else {
+                endDone = true;
+            }
+        }
+
+        if(endDone == true && startDone == true) {
+            break;
+        }
+    }
+
+    //positionEnd = positionEnd - 1; // Idk?...
+    positionStart = positionStart + 1;
+
+    cursor.clearSelection();
+    cursor.setPosition(positionStart);
+    cursor.setPosition(positionEnd, QTextCursor::KeepAnchor);
+    //cursor.movePosition(positionEnd, QTextCursor::MoveAnchor);
+
+    // Doesn't work and is a mess
+    /*
+    cursor.beginEditBlock();
+    cursor.movePosition(QTextCursor::PreviousWord, QTextCursor::KeepAnchor);
+    cursor.endEditBlock();
+    */
+    ui->text->setTextCursor(cursor);
 }

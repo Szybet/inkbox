@@ -14,14 +14,11 @@ class textDialog : public QDialog
     Q_OBJECT
 
 public:
-    QString className = this->metaObject()->className();
     explicit textDialog(QWidget *parent = nullptr);
     ~textDialog();
-    bool highlightAlreadyDone = false;
 
 signals:
     void highlightText();
-    void unhighlightText();
 
 private slots:
     void on_highlightBtn_clicked();
