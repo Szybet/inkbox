@@ -42,6 +42,8 @@ SOURCES += \
     src/widgets/dialogs/library/bookoptionsdialog.cpp \
     src/widgets/dialogs/brightnessdialog.cpp \
     src/apps/calendarapp.cpp \
+    src/widgets/dialogs/libretranslate/translate.cpp \
+    src/widgets/dialogs/libretranslate/translateSettings.cpp \
     src/widgets/dialogs/reader/highlightslistdialog.cpp \
     src/widgets/dialogs/reader/textdialog.cpp \
     src/widgets/dialogs/wifi/connectiondialog.cpp \
@@ -98,6 +100,8 @@ HEADERS += \
     src/widgets/dialogs/library/bookoptionsdialog.h \
     src/widgets/dialogs/brightnessdialog.h \
     src/apps/calendarapp.h \
+    src/widgets/dialogs/libretranslate/translate.h \
+    src/widgets/dialogs/libretranslate/translateSettings.h \
     src/widgets/dialogs/reader/highlightslistdialog.h \
     src/widgets/dialogs/reader/textdialog.h \
     src/widgets/dialogs/wifi/connectiondialog.h \
@@ -149,6 +153,8 @@ FORMS += \
     src/widgets/dialogs/library/bookoptionsdialog.ui \
     src/widgets/dialogs/brightnessdialog.ui \
     src/apps/calendarapp.ui \
+    src/widgets/dialogs/libretranslate/translate.ui \
+    src/widgets/dialogs/libretranslate/translateSettings.ui \
     src/widgets/dialogs/reader/highlightslistdialog.ui \
     src/widgets/dialogs/reader/textdialog.ui \
     src/widgets/dialogs/wifi/connectiondialog.ui \
@@ -208,6 +214,16 @@ LIBS += -L$$PWD/libs/libreader-rs/lib/ -lreader_rs
 INCLUDEPATH += $$PWD/libs/mupdf/mupdf/include/
 DEPENDPATH += $$PWD/libs/mupdf/mupdf/include/
 LIBS += -L$$PWD/libs/mupdf/mupdf/build/shared-release/ -lmupdf
+
+# Libretranslate
+SOURCES += $$PWD/libs/LibreTranslate-cpp/LibreTranslate.cpp
+INCLUDEPATH += $$PWD/libs/LibreTranslate-cpp/
+DEPENDPATH += $$PWD/libs/LibreTranslate-cpp/
+
+# Curl for Libretranslate
+INCLUDEPATH += $$PWD/libs/curl/include/curl
+DEPENDPATH += $$PWD/libs/curl/include/curl
+LIBS += -L$$PWD/libs/prebuilt -lcurl
 
 # Use a build folder
 DESTDIR = build/

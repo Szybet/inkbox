@@ -56,6 +56,15 @@ namespace global {
         inline int margins;
         inline QString currentViewportText;
     }
+    namespace translate {
+        struct translateConfig {
+            QString url = "";
+            QString apiKey = "";
+            QString langFrom = "";
+            QString langTo = "";
+        };
+        inline global::translate::translateConfig loadedConfig;
+    }
     namespace toreader {
     // No txt, we want them as epubs
         inline const QVector<QString> supportedFormats = {"epub", "pdf"}; // More to come?

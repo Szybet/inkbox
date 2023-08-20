@@ -58,6 +58,23 @@ QDataStream& operator>>(QDataStream& in, global::toreader::toreaderConfig& v) {
     return in;
 }
 
+QDataStream& operator<<(QDataStream& out, const global::translate::translateConfig& v) {
+    out << v.url;
+    out << v.apiKey;
+    out << v.langFrom;
+    out << v.langTo;
+    return out;
+}
+
+QDataStream& operator>>(QDataStream& in, global::translate::translateConfig& v) {
+    in >> v.url;
+    in >> v.apiKey;
+    in >> v.langFrom;
+    in >> v.langTo;
+    return in;
+}
+
+
 // Chatgpt is awesome for writing this crap
 QDebug operator<<(QDebug dbg, const global::toreader::toreaderConfig& v) {
     dbg.nospace() << "toreaderConfig(savedPage=" << v.savedPage << ", format=" << v.format << ", usesImageEngine=" << v.usesImageEngine << ", isSingleImage=" << v.isSingleImage << ", font=" << v.font
@@ -70,10 +87,22 @@ QDebug operator<<(QDebug dbg, const global::toreader::toreaderConfig& v) {
     return dbg.space();
 }
 
+QDebug operator<<(QDebug dbg, const global::translate::translateConfig& v) {
+    dbg.nospace() << "translateConfig("
+                  << "url: " << v.url
+                  << ", apiKey: " << v.apiKey
+                  << ", langFrom: " << v.langFrom
+                  << ", langTo: " << v.langTo
+                  << ")";
+    return dbg;
+}
+
 void declareMetaTypes() {
     // First this
     qRegisterMetaTypeStreamOperators<global::toreader::toreaderConfig>("global::toreader::toreaderConfig");
+    qRegisterMetaTypeStreamOperators<global::translate::translateConfig>("global::translate::translateConfig");
 
     // Then this
     qRegisterMetaType<global::toreader::toreaderConfig>("global::toreader::toreaderConfig");
+    qRegisterMetaType<global::translate::translateConfig>("global::translate::translateConfig");
 }
