@@ -20,6 +20,10 @@ private slots:
 
     void on_apiButton_clicked();
 
+    void on_okButton_clicked();
+
+    void on_infoButton_clicked();
+
 private:
     Ui::translateSettings *ui;
 };

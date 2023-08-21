@@ -8,7 +8,8 @@
 #include "calibrate.h" // Ignore this error of redefinition lol
 #include "textdialog.h"
 #include "highlightDialog.h"
-#include "highlightslistdialog.h""
+#include "highlightslistdialog.h"
+#include "translate.h"
 
 #include <QFontDialog>
 #include <QWidget>
@@ -419,7 +420,13 @@ void toreader::highlightTextSlot() {
 }
 
 void toreader::translateTextSlot() {
+    qDebug() << "Translate text was requested";
+    QTextCursor cursor = ui->text->textCursor();
+    QString selectedText = cursor.selectedText();
 
+    translate* translateDialog = new translate(this);
+    translateDialog->start(selectedText);
+    translateDialog->exec();
 }
 
 void toreader::on_viewHighlightsBtn_clicked()

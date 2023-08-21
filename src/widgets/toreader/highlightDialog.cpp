@@ -62,6 +62,7 @@ void highlightDialog::on_remRightButton_clicked()
 }
 
 void highlightDialog::shutdownCheck(QPoint pos) {
+    Q_UNUSED(pos);
     end();
 }
 
