@@ -7,9 +7,6 @@
 [submodule "libs/mupdf"]
 	path = libs/mupdf
 	url = https://github.com/Kobo-InkBox/mupdf.git
-[submodule "libs/LibreTranslate-cpp"]
-	path = libs/LibreTranslate-cpp
-	url = https://github.com/argosopentech/LibreTranslate-cpp.git
 [submodule "libs/curl"]
 	path = libs/curl
 	url = https://github.com/curl/curl.git
