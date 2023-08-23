@@ -5,6 +5,7 @@
 #include "functions.h"
 
 #include <iostream>
+#include "Libretranslate-rs-to-cpp.h"
 
 translate::translate(QWidget *parent) :
     QDialog(parent),
@@ -49,15 +50,9 @@ void translate::refresh() {
         setStat("No internet connection");
         return;
     }
-    if(translateDebug == true) {
-        libreTranslateAPI = LibreTranslateAPI();
-    }
-    else {
-        libreTranslateAPI = LibreTranslateAPI(global::translate::loadedConfig.url.toStdString(), global::translate::loadedConfig.apiKey.toStdString());
-    }
 
-    // nlohman, oh no
-    libreTranslateAPI.languages();
-    //qDebug() << "Languages:" << languages;
+    QString trans = QString::fromStdString(translate_text_c("I want this to be in polish", "en", "pl", "https://translate.argosopentech.com/", ""));
+    qDebug() << trans << "trans";
+
 
 }

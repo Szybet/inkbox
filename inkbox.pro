@@ -213,17 +213,14 @@ LIBS += -L$$PWD/libs/libreader-rs/lib/ -lreader_rs
 # mutool
 INCLUDEPATH += $$PWD/libs/mupdf/mupdf/include/
 DEPENDPATH += $$PWD/libs/mupdf/mupdf/include/
+# It breaks every recompile so...
 LIBS += -L$$PWD/libs/mupdf/mupdf/build/shared-release/ -lmupdf
 
-# Libretranslate
-SOURCES += $$PWD/libs/LibreTranslate-cpp/LibreTranslate.cpp
-INCLUDEPATH += $$PWD/libs/LibreTranslate-cpp/
-DEPENDPATH += $$PWD/libs/LibreTranslate-cpp/
-
-# Curl for Libretranslate
-INCLUDEPATH += $$PWD/libs/curl/include/curl
-DEPENDPATH += $$PWD/libs/curl/include/curl
-LIBS += -L$$PWD/libs/prebuilt -lcurl
+# Libretranslate-rs-to-cpp
+INCLUDEPATH += $$PWD/libs/Libretranslate-rs-to-cpp/lib/include/
+DEPENDPATH += $$PWD/libs/Libretranslate-rs-to-cpp/lib/include/
+# It's our tool, so no prebuild, just compile it
+LIBS += -L$$PWD/libs/Libretranslate-rs-to-cpp/lib/ -lLibretranslate_rs_to_cpp
 
 # Use a build folder
 DESTDIR = build/

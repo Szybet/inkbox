@@ -2,7 +2,6 @@
 #define TRANSLATE_H
 
 #include <QDialog>
-#include "LibreTranslate.h"
 
 namespace Ui {
 class translate;
@@ -27,7 +26,6 @@ private slots:
 
 private:
     Ui::translate *ui;
-    LibreTranslateAPI libreTranslateAPI;
 };
 
 #endif // TRANSLATE_H
