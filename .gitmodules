@@ -7,6 +7,3 @@
 [submodule "libs/mupdf"]
 	path = libs/mupdf
 	url = https://github.com/Kobo-InkBox/mupdf.git
-[submodule "libs/Libretranslate-rs-to-cpp"]
-	path = libs/Libretranslate-rs-to-cpp
-	url = https://github.com/Szybet/Libretranslate-rs-to-cpp.git
