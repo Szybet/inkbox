@@ -56,6 +56,14 @@ private slots:
 
     void on_viewHighlightsBtn_clicked();
 
+    void on_alignRightBtn_clicked();
+
+    void on_alignLeftBtn_clicked();
+
+    void on_alignCenterBtn_clicked();
+
+    void on_alignJustifyBtn_clicked();
+
 private:
     Ui::toreader *ui;
     QThread *RequestThread;

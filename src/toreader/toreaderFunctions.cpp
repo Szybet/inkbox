@@ -8,6 +8,7 @@
 #include <QSettings>
 #include <QFontDatabase>
 #include <QCryptographicHash>
+#include <QRegularExpression>
 
 Ui::toreader *ui = NULL;
 toreader* thiss = NULL;
@@ -166,6 +167,7 @@ void mainSetStyle() {
     qDebug() << "Setting other styles";
     iconsSizeSet();
     hideThings();
+    manageRecentBooksPages();
 
     if(global::deviceID == "n873\n") {
         ui->nextBtn->setStyleSheet("padding: 13.5px");
@@ -355,21 +357,52 @@ void showToast(QString messageToDisplay) {
 }
 
 // 0 left, 1 center, 2 right, 3 justify
+// ui->text->setAlignment(Qt::AlignLeft); only sets it to the first p tag, so here we are
 void setAlignment() {
+    qDebug() << "Setting alignment";
     int *alignment = &conf->alignment;
     qDebug() << "Setting alignment:" << *alignment;
+    QString htmlText = ui->text->toHtml(); // Store the HTML text in a QString
+
+
+    QRegularExpression re("align=\"([^\"]*)\" ", QRegularExpression::MultilineOption);
+
+    QRegularExpressionMatchIterator matches = re.globalMatch(htmlText);
+
+    QString modifiedHtmlText = htmlText;
+
+    while (matches.hasNext()) {
+        qDebug() << "Replacing match in alignment regex";
+        QRegularExpressionMatch match = matches.next();
+        modifiedHtmlText = modifiedHtmlText.replace(match.capturedStart(), match.capturedLength(), "");
+    }
+
+    writeFile("/tmp/beforeMiddle_afterSetStyleSet.html", modifiedHtmlText);
+
+    QString htmlAlign;
     if(*alignment == 0) {
-        ui->text->setAlignment(Qt::AlignLeft);
+        //ui->text->setAlignment(Qt::AlignLeft);
+        htmlAlign = "align=\"left\"";
     }
     else if(*alignment == 1) {
-        ui->text->setAlignment(Qt::AlignHCenter);
+        //ui->text->setAlignment(Qt::AlignHCenter);
+        htmlAlign = "align=\"center\"";
     }
     else if(*alignment == 2) {
-        ui->text->setAlignment(Qt::AlignRight);
+        //ui->text->setAlignment(Qt::AlignRight);
+        htmlAlign = "align=\"right\"";
     }
     else if(*alignment == 3) {
-        ui->text->setAlignment(Qt::AlignJustify);
+        //ui->text->setAlignment(Qt::AlignJustify);
+        htmlAlign = "align=\"justify\"";
     }
+
+    QString nextToTag = "<p ";
+    modifiedHtmlText = modifiedHtmlText.replace(nextToTag, nextToTag + htmlAlign);
+
+    writeFile("/tmp/middle_afterSetStyleSet.html", modifiedHtmlText);
+
+    ui->text->setHtml(modifiedHtmlText);
 }
 
 int previousAlignment = -1;
@@ -391,12 +424,20 @@ void setTextStyle(QString* textProvided, bool containsImage) {
             ui->text->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
         }
     }
+}
+
+// The reason this exist is because qt functions need to operate on qtextedit, not only on html ;/
+void afterSetStyleSet() {
+    qDebug() << "Calling afterSetStyleSet";
+    writeFile("/tmp/Before_afterSetStyleSet.html", ui->text->toHtml());
     setAlignment();
     ui->text->setFont(conf->font);
+    writeFile("/tmp/After_afterSetStyleSet.html", ui->text->toHtml());
 }
 
 bool menubarShown = false;
 void openMenu() {
+    // TODO VERY IMPORTANT: disable highlighting when menu is shown
     if(menubarShown == true) {
         // Hiding menu bar - style code
         ui->menuWidget->setVisible(false);

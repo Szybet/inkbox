@@ -62,10 +62,8 @@ void translateSettings::on_urlButton_clicked()
     generalDialogWindow->exec();
 
     global::keyboard::keyboardDialog = false;
-    if(global::keyboard::keyboardText.isEmpty() == false) {
-        ui->urlText->setPlainText(global::keyboard::keyboardText);
-        global::translate::loadedConfig.url = global::keyboard::keyboardText;
-    }
+    ui->urlText->setPlainText(global::keyboard::keyboardText);
+    global::translate::loadedConfig.url = global::keyboard::keyboardText;
     global::keyboard::keyboardText = "";
 }
 
@@ -79,10 +77,8 @@ void translateSettings::on_apiButton_clicked()
     generalDialogWindow->exec();
 
     global::keyboard::keyboardDialog = false;
-    if(global::keyboard::keyboardText.isEmpty() == false) {
-        ui->apiText->setPlainText(global::keyboard::keyboardText);
-        global::translate::loadedConfig.apiKey = global::keyboard::keyboardText;
-    }
+    ui->apiText->setPlainText(global::keyboard::keyboardText);
+    global::translate::loadedConfig.apiKey = global::keyboard::keyboardText;
     global::keyboard::keyboardText = "";
 }
 

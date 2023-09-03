@@ -216,12 +216,6 @@ DEPENDPATH += $$PWD/libs/mupdf/mupdf/include/
 # It breaks every recompile so...
 LIBS += -L$$PWD/libs/mupdf/mupdf/build/shared-release/ -lmupdf
 
-# Libretranslate-rs-to-cpp
-INCLUDEPATH += $$PWD/libs/Libretranslate-rs-to-cpp/lib/include/
-DEPENDPATH += $$PWD/libs/Libretranslate-rs-to-cpp/lib/include/
-# It's our tool, so no prebuild, just compile it
-LIBS += -L$$PWD/libs/Libretranslate-rs-to-cpp/lib/ -lLibretranslate_rs_to_cpp
-
 # Use a build folder
 DESTDIR = build/
 OBJECTS_DIR = build/.obj

@@ -142,28 +142,32 @@ void toreader::setText(QString textProvided) {
     if(containsImage == false) {
         //if(conf->loadHighlightsSlow == false) // And if they are enabled at all?
         QVector<QString> highlightList = getNormalHighlights();
-        QString highlistsNative = convertToRustHighlights(highlightList);
-        qDebug() << "The highlightList:" << highlightList;
-        qDebug() << "Setting text";
+        if(highlightList.isEmpty() == false) {
+            QString highlistsNative = convertToRustHighlights(highlightList);
+            qDebug() << "The highlightList:" << highlightList;
+            qDebug() << "Setting text";
 
-        QString previousPage = getPageSlowSafe(conf->savedPage - 1);
-        QString nextPage = getPageSlowSafe(conf->savedPage + 1);
+            QString previousPage = getPageSlowSafe(conf->savedPage - 1);
+            QString nextPage = getPageSlowSafe(conf->savedPage + 1);
 
-        // No images for now
-        if(previousPage.contains("<img style=")) {
-            previousPage = "";
+            // No images for now
+            if(previousPage.contains("<img style=")) {
+                previousPage = "";
+            }
+            if(nextPage.contains("<img style=")) {
+                nextPage = "";
+            }
+
+            const char* highlightedText = highlight_page_c(textProvided.toStdString().c_str(), previousPage.toStdString().c_str(), nextPage.toStdString().c_str(), highlistsNative.toStdString().c_str());
+            textProvided = QString::fromStdString(highlightedText);
         }
-        if(nextPage.contains("<img style=")) {
-            nextPage = "";
-        }
-
-        const char* highlightedText = highlight_page_c(textProvided.toStdString().c_str(), previousPage.toStdString().c_str(), nextPage.toStdString().c_str(), highlistsNative.toStdString().c_str());
-        textProvided = QString::fromStdString(highlightedText);
     }
 
     ui->text->setHtml(textProvided);
     setTextStyle(&textProvided, containsImage);
     writeFile("/tmp/mupdf_test_final2.html", textProvided);
+
+    afterSetStyleSet();
 
     QCoreApplication::processEvents(QEventLoop::AllEvents);
     qDebug() << "Setted text";
@@ -221,13 +225,14 @@ void toreader::on_optionsBtn_clicked()
 void toreader::setOnlyStyle() {
     // TODO???
     // I need in rust to remove whole span style because of font, sad
-    emit requestPage(conf->savedPage);
-    return;
+    //emit requestPage(conf->savedPage);
+    //return;
     QString text = ui->text->toHtml();
+    writeFile("/tmp/setOnlyStyle_before.html", text);
     setTextStyle(&text, containsImage);
+    writeFile("/tmp/setOnlyStyle_after.html", text);
     if(text != ui->text->toHtml()) {
         ui->text->setHtml(text);
-        setTextStyle(&text, containsImage);
     }
     QCoreApplication::processEvents(QEventLoop::AllEvents);
 }
@@ -277,8 +282,18 @@ void toreader::highlightFunc() {
 
     repairSelection();
 
+    // Actually not, we have buttons to help selecting
+    /*
+    QTextCursor cursor = ui->text->textCursor();
+    QString selectedText = cursor.selectedText();
+    if(selectedText.count() <= 1) {
+        qDebug() << "Ignoring selection - too small";
+        return;
+    }
+    */
     // Highlight
     // TODO: deselect / remove highlight support
+
 
     textDialog* textDialogWindow = new textDialog(this);
     QObject::connect(textDialogWindow, &textDialog::destroyed, this, &toreader::unsetTextDialogLock);
@@ -481,3 +496,30 @@ QString toreader::convertToRustHighlights(QVector<QString> highlights) {
     qDebug() << "Final str highlights:" << finalStr;
     return finalStr;
 }
+
+void toreader::on_alignRightBtn_clicked()
+{
+    conf->alignment = 2;
+    afterSetStyleSet();
+}
+
+void toreader::on_alignLeftBtn_clicked()
+{
+    conf->alignment = 0;
+    afterSetStyleSet();
+}
+
+
+void toreader::on_alignCenterBtn_clicked()
+{
+    conf->alignment = 1;
+    afterSetStyleSet();
+}
+
+
+void toreader::on_alignJustifyBtn_clicked()
+{
+    conf->alignment = 3;
+    afterSetStyleSet();
+}
+
